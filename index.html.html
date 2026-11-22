@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Análise FCV · Retirada Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<!-- Bibliotecas com versões fixas (cdnjs) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ===== Identidade visual (aproximações; ajuste aqui) ===== */
+:root{
+  --verde:#0B6E3A;        /* cor principal */
+  --verde-2:#3E9B5F;      /* verde médio para séries secundárias */
+  --verde-3:#A9D9B5;      /* verde claro para séries terciárias */
+  --lima:#8CD211;         /* destaque */
+  --lima-escuro:#5E9A0A;  /* linhas sobre fundo branco */
+  --fundo-card:#EEF6EA;   /* fundo claro de cards/linhas alternadas */
+  --bg:#F5F8F3;
+  --branco:#FFFFFF;
+  --texto:#1F2A24;
+  --texto-2:#6B7A72;
+  --borda:#D9E4D6;
+  --alerta:#D98E04;       /* âmbar: atenção */
+  --alerta-fundo:#FFF4D6;
+  --alerta-texto:#7A5200;
+  --critico:#C2410C;      /* crítico */
+  --radius:14px;
+  --sombra:none;
+  --fonte:"Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--texto);font-family:var(--fonte);font-size:15px;line-height:1.45}
+button,select,input{font-family:inherit;font-size:14px}
+:focus-visible{outline:3px solid var(--lima);outline-offset:2px}
+.hidden{display:none !important}
+
+/* Cabeçalho */
+header.top{background:#0B6E3A;color:#fff;border-bottom:4px solid var(--lima)}
+.top-inner{max-width:1480px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.top h1{margin:0;font-size:22px;font-weight:800;letter-spacing:.2px}
+.top .tag{font-size:13px;opacity:.85}
+.top .spacer{flex:1}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer}
+.btn-lima{background:var(--lima);color:#16300A}
+.btn-lima:hover{filter:brightness(1.05)}
+.btn-verde{background:#0B6E3A;color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--borda);color:var(--verde);border-radius:8px;padding:5px 10px;font-weight:600;cursor:pointer;font-size:13px}
+.btn-ghost:hover{background:var(--fundo-card)}
+.top .file-name{font-size:13px;background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px}
+
+/* Tela inicial */
+.welcome{max-width:980px;margin:40px auto;padding:0 24px}
+.welcome .card{padding:28px}
+.drop{border:2px dashed var(--verde-2);border-radius:var(--radius);background:var(--fundo-card);padding:36px;text-align:center;cursor:pointer;transition:background .15s}
+.drop.over{background:#E2F2D6;border-color:var(--lima-escuro)}
+.drop strong{display:block;font-size:18px;margin-bottom:6px}
+.welcome ol{padding-left:20px}
+.welcome li{margin:6px 0}
+.msg{border-radius:10px;padding:12px 14px;margin-top:16px}
+.msg.err{background:#FDECEA;color:#8A1C0B;border:1px solid #F3B9AE}
+.msg.ok{background:var(--fundo-card);color:var(--verde);border:1px solid var(--borda)}
+.msg.warn{background:var(--alerta-fundo);color:var(--alerta-texto);border:1px solid #F0D08A}
+
+/* Barra de filtros */
+.filters{position:relative;z-index:20;background:var(--branco);border-bottom:1px solid var(--borda)}
+.filters-inner{max-width:1480px;margin:0 auto;padding:10px 24px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:12px;color:var(--texto-2);font-weight:600}
+.f select,.f input{border:1px solid var(--borda);border-radius:8px;padding:6px 8px;background:var(--branco);color:var(--texto);min-width:120px}
+.f input[type=number]{min-width:80px;width:90px}
+.f .flabel{font-size:12px;color:var(--texto-2);font-weight:600}
+.ms{position:relative}
+.ms-btn{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--borda);border-radius:8px;padding:6px 8px;background:var(--branco);color:var(--texto);min-width:150px;max-width:260px;cursor:pointer;text-align:left}
+.ms-btn .ms-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-btn.on{border-color:var(--verde);background:var(--fundo-card);font-weight:700}
+.ms-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:40;background:var(--branco);border:1px solid var(--borda);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;max-width:340px;padding:8px}
+.ms-actions{display:flex;gap:6px;padding:2px 2px 8px;border-bottom:1px solid #EDF2EA;margin-bottom:6px}
+.ms-list{max-height:300px;overflow:auto}
+.ms-opt{display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.ms-opt:hover{background:var(--fundo-card)}
+.ms-opt input{margin-top:3px;accent-color:var(--verde)}
+.ms-opt .cnt{margin-left:auto;color:var(--texto-2);font-size:12px;font-variant-numeric:tabular-nums}
+.filter-warn{max-width:1480px;margin:0 auto;padding:0 24px 8px}
+.filter-warn .msg{margin:0;font-size:12.5px;padding:7px 10px}
+.active-filters{max-width:1480px;margin:0 auto;padding:0 24px 8px;font-size:12.5px;color:var(--texto-2)}
+.active-filters b{color:var(--texto)}
+
+/* Abas */
+nav.tabs{max-width:1480px;margin:0 auto;padding:12px 24px 0;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--borda)}
+nav.tabs button{background:transparent;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:700;color:var(--texto-2);cursor:pointer;border-radius:8px 8px 0 0}
+nav.tabs button[aria-selected=true]{color:var(--verde);border-bottom-color:var(--lima);background:var(--branco)}
+nav.tabs button:hover{color:var(--verde)}
+main{max-width:1480px;margin:0 auto;padding:20px 24px 60px}
+
+/* Seções e cards */
+h2.sec{font-size:19px;margin:26px 0 12px;padding-left:12px;border-left:5px solid var(--lima);font-weight:800}
+h2.sec:first-child{margin-top:4px}
+.lead{color:var(--texto-2);margin:-4px 0 14px;max-width:110ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px}
+.grid .wide{grid-column:1/-1}
+.card{background:var(--branco);border-radius:var(--radius);box-shadow:var(--sombra);border:1px solid var(--borda)}
+.card-head{padding:16px 18px 4px}
+.card-head h3{margin:0;font-size:15.5px;font-weight:800}
+.card-head .sub{margin:4px 0 0;color:var(--texto-2);font-size:13px}
+.card-body{padding:8px 18px 6px}
+.chart-wrap{position:relative;width:100%}
+.card-foot{display:flex;gap:8px;padding:6px 18px 14px;justify-content:flex-end}
+.note{font-size:12.5px;color:var(--texto-2);margin:6px 0}
+.badge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+.badge.alta{background:var(--fundo-card);color:var(--verde)}
+.badge.media{background:#E8F0FB;color:#1E4E8C}
+.badge.baixa{background:var(--alerta-fundo);color:var(--alerta-texto)}
+.denom-label{display:inline-block;background:var(--fundo-card);color:var(--verde);border-radius:6px;padding:1px 7px;font-weight:700;font-size:12px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px}
+.kpi{background:var(--branco);border-radius:var(--radius);box-shadow:var(--sombra);padding:14px 16px;border:1px solid var(--borda);border-top:4px solid var(--verde)}
+.kpi.warn{border-top-color:var(--alerta)}
+.kpi .k-label{font-size:12.5px;color:var(--texto-2);font-weight:700}
+.kpi .k-val{font-size:28px;font-weight:800;color:var(--verde);line-height:1.15;margin:4px 0}
+.kpi.warn .k-val{color:var(--alerta-texto)}
+.kpi .k-val.txt{font-size:18px;line-height:1.25;margin:8px 0}
+.kpi .k-sub{font-size:12px;color:var(--texto-2)}
+
+/* Tabelas */
+.tbl-wrap{overflow-x:auto;margin:8px 0}
+table.dt{border-collapse:collapse;width:100%;font-size:13px}
+table.dt th{background:#0B6E3A;color:#fff;text-align:left;padding:7px 9px;font-weight:700;white-space:nowrap;position:sticky;top:0}
+table.dt td{padding:6px 9px;border-bottom:1px solid #EDF2EA;vertical-align:top}
+table.dt tbody tr:nth-child(even) td{background:var(--fundo-card)}
+table.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll-y{max-height:420px;overflow:auto}
+
+/* Heatmaps */
+table.heat{border-collapse:separate;border-spacing:3px;width:100%;font-size:12.5px}
+table.heat th{font-weight:700;color:var(--texto-2);padding:4px;text-align:center;white-space:nowrap}
+table.heat th.rh{text-align:right}
+table.heat td{text-align:center;padding:8px 4px;border-radius:6px;font-variant-numeric:tabular-nums;min-width:42px}
+table.heat td.diag{outline:2px solid var(--lima-escuro);outline-offset:-2px}
+.heat-legend{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--texto-2);margin-top:6px;flex-wrap:wrap}
+.swatch{display:inline-block;width:22px;height:12px;border-radius:3px;vertical-align:middle}
+
+/* Insights */
+.ins-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:1000px){.ins-cols{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+.ins-col h3{margin:0 0 10px;font-size:16px;font-weight:800}
+.ins{background:var(--branco);border-radius:12px;box-shadow:var(--sombra);padding:14px 16px;margin-bottom:12px;border-left:5px solid var(--verde)}
+.ins.hip{border-left-color:var(--lima);background:#FBFDF8}
+.ins.low{box-shadow:var(--sombra),inset 0 0 0 1px #F0D08A}
+.ins h4{margin:0 0 6px;font-size:15px}
+.ins p{margin:4px 0;font-size:13.5px}
+.ins .lbl{font-weight:800;color:var(--texto-2)}
+.ins .warnline{background:var(--alerta-fundo);color:var(--alerta-texto);border-radius:6px;padding:4px 8px;font-size:12.5px;margin-top:6px}
+
+/* Mapeamento */
+.map-table select{border:1px solid var(--borda);border-radius:6px;padding:4px;max-width:270px}
+tr.unmapped td{background:var(--alerta-fundo) !important}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+mark{background:#E2F5C4;color:var(--texto);border-radius:3px;padding:0 2px}
+.comment{border-bottom:1px solid #EDF2EA;padding:8px 0;font-size:13.5px}
+.comment .meta{font-size:12px;color:var(--texto-2);margin-bottom:2px}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;margin-right:4px}
+.pill.det{background:#FDECEA;color:#8A1C0B}.pill.neu{background:#F1F3F2;color:#41504A}.pill.pro{background:var(--fundo-card);color:var(--verde)}.pill.sem{background:#F1F3F2;color:#6B7A72}
+.pill.imp{background:var(--alerta-fundo);color:var(--alerta-texto)}
+.toast{position:fixed;bottom:20px;right:20px;background:#0B6E3A;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:50}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+.filter-warn .msg{background:none;border:none;padding:0;margin:2px 0;font-size:12px;color:var(--texto-2)}
+.active-filters{font-size:12px;color:var(--texto-2)}
+.kpi{border-top-width:2px}
+.more{position:relative;align-self:flex-end}
+.more summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--verde);padding:7px 4px;list-style:none}
+.more summary::-webkit-details-marker{display:none}
+.more[open] .more-in{position:absolute;z-index:45;top:100%;left:0;display:flex;flex-direction:column;gap:12px;background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:260px}
+[data-act=csv]{display:none!important}
+.case-badge{display:inline-block;margin-right:8px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.case-on{background:var(--fundo-card);color:var(--verde);border:1px solid var(--verde)}
+.case-off{background:var(--alerta-fundo);color:var(--alerta-texto);border:1px solid var(--alerta)}
+.blk{margin:16px 0 20px}.blk h3{margin:0 0 6px;font-size:1.05rem}
+.jbar{display:grid;grid-template-columns:minmax(170px,260px) 1fr 64px;gap:12px;align-items:center;margin:10px 0}
+.jbar .trk{background:var(--fundo-card);border-radius:6px;height:22px;overflow:hidden}.jbar .fil{height:100%;border-radius:6px}
+.blk .card{padding:14px 16px}
+@media (max-width:640px){.jbar{grid-template-columns:1fr 56px}.jbar .trk{grid-column:1/-1;order:3}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0E1511;--branco:#16201A;--fundo-card:#1D2A22;--texto:#E5EEE8;--texto-2:#9DB0A5;--borda:#2B3A31;--alerta-fundo:#3A2F12;--alerta-texto:#F3CF7A;--verde:#3FB572;--verde-2:#5CC183;--verde-3:#2E5B3F;--lima-escuro:#9BDB2A;--sombra:0 2px 12px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0E1511;--branco:#16201A;--fundo-card:#1D2A22;--texto:#E5EEE8;--texto-2:#9DB0A5;--borda:#2B3A31;--alerta-fundo:#3A2F12;--alerta-texto:#F3CF7A;--verde:#3FB572;--verde-2:#5CC183;--verde-3:#2E5B3F;--lima-escuro:#9BDB2A;--sombra:0 2px 12px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div>
+      <h1>Análise FCV · Retirada Digital</h1>
+      <div class="tag">Falta de carro em vaga: onde concentra, por que acontece, quanto afeta o cliente</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="file-name hidden" id="fileName"></span>
+    <button class="btn btn-lima" id="btnLoad" type="button">Carregar planilha</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" aria-label="Selecionar planilha .xlsx">
+  </div>
+</header>
+
+<!-- ===== Tela inicial ===== -->
+<section class="welcome" id="welcome">
+<div class="msg ok" style="margin-top:0;margin-bottom:16px"><b>Como usar.</b> 1. Carregue a planilha do case (Bases_Case_Individual_Fase2.xlsx). 2. O dashboard abre no <b>recorte do case</b>, o mesmo da apresentação: 12 grupos da hierarquia (B a GX), sem falhas técnicas e de cliente, data da FCV = data da retirada. 3. Explore com os filtros; o botão <b>Aplicar recorte do case</b> volta aos números da apresentação. A planilha é lida só no seu navegador e não é enviada a nenhum servidor.</div>
+  <div class="card">
+    <h2 class="sec">Comece carregando a planilha</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Arraste a planilha aqui ou pressione Enter para selecionar">
+      <strong>Arraste o arquivo .xlsx aqui</strong>
+      ou clique para selecionar. O arquivo é lido apenas no seu navegador; nada é enviado a servidores.
+    </div>
+    <div id="loadMsg"></div>
+    <h2 class="sec">O que a planilha precisa ter</h2>
+    <ol>
+      <li><b>reservas_afetadas_fcv</b>: data/hora de criação da reserva, contrato, grupo reservado, grupo utilizado, tipo de abertura.</li>
+      <li><b>contratos_nao_aproveitados</b>: data de abertura, contrato, grupos reservado e utilizado, erro.</li>
+      <li><b>base_retirada</b>: contrato, data/hora de abertura, grupo da reserva, grupo utilizado.</li>
+      <li><b>base_devolucao</b>: contrato, grupo utilizado, data/hora de fechamento, grupo da reserva.</li>
+      <li><b>base_nps</b>: contrato, data, segmento, tipo de abertura, fidelidade, grupo, nps_retirada, comentários.</li>
+    </ol>
+    <p class="note">Nomes de abas e colunas são reconhecidos por aproximação. O mapeamento usado aparece na aba Qualidade dos dados. O número do contrato é a chave entre as abas.</p>
+  </div>
+</section>
+
+<!-- ===== Aplicação ===== -->
+<div id="app" class="hidden">
+  <div class="filters" role="region" aria-label="Filtros globais">
+    <div class="filters-inner">
+      <div class="f"><label for="fFrom">Período de</label><input type="date" id="fFrom"></div>
+      <div class="f"><label for="fTo">até</label><input type="date" id="fTo"></div>
+      <div class="f"><span class="flabel" id="lbl-fGroup">Grupo reservado</span><div class="ms" id="fGroup"></div></div>
+      <div class="f"><span class="flabel" id="lbl-fTipo">Tipo de abertura</span><div class="ms" id="fTipo"></div></div>
+      <div class="f"><span class="flabel" id="lbl-fCause">Causa</span><div class="ms" id="fCause"></div></div>
+      <div class="f"><span class="flabel" id="lbl-fWd">Dia da semana</span><div class="ms" id="fWd"></div></div>
+      <div class="f"><span class="flabel" id="lbl-fHb">Faixa horária</span><div class="ms" id="fHb"></div></div>
+      <details class="more"><summary>Mais filtros ▾</summary><div class="more-in">
+      <div class="f"><label for="fDenom">Denominador da taxa</label>
+        <select id="fDenom">
+          <option value="total">Total de retiradas</option>
+          <option value="comreserva">Retiradas com reserva</option>
+        </select></div>
+      <div class="f"><label for="fDateRef">Data da FCV</label>
+        <select id="fDateRef">
+          <option value="retirada">Data da retirada (cruzamento)</option>
+          <option value="criacao">Data de criação da reserva</option>
+        </select></div>
+      <div class="f"><label for="fLag">Preparo após devolução (min)</label><input type="number" id="fLag" min="0" max="720" step="15" value="60"></div>
+      <div class="f"><label for="fNoRet">FCV sem retirada registrada</label><select id="fNoRet"><option value="incluir">Incluir (data de criação)</option><option value="excluir">Excluir</option></select></div>
+      </div></details>
+      <button class="btn btn-verde" id="btnCase" type="button">Aplicar recorte do case</button>
+      <button class="btn-ghost" id="btnReset" type="button">Base completa</button>
+    </div>
+    <div class="active-filters" id="activeFilters" aria-live="polite"></div>
+    <div class="filter-warn" id="filterWarn"></div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Seções do dashboard" id="tabs"></nav>
+  <main id="main"></main>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   1. CONFIGURAÇÃO E REGRAS DE NEGÓCIO
+   ===================================================================== */
+const HIER = ['B','CE','CS','FH','FX','G','HM','GC','HC','GH','GI','GX']; // menor → maior
+const RANK = Object.fromEntries(HIER.map((g,i)=>[g,i+1]));
+const WD = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const BANDS = [[0,2],[3,5],[6,8],[9,11],[12,14],[15,17],[18,20],[21,23]];
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const SEM_RESERVA = 'SEM RESERVA';
+
+/* Taxonomia de causas. fcv: true = FCV de fato; false = não é FCV; null = indeterminado (editável na interface) */
+const CAUSES = [
+  {id:'gerenciamento',    label:'Gerenciamento / trancamento',                fcv:true,  color:'#0B6E3A'},
+  {id:'higienizacao',     label:'Higienização / conferência',                 fcv:true,  color:'#3E9B5F'},
+  {id:'indisponibilidade',label:'Indisponibilidade de grupo',                 fcv:true,  color:'#8CD211'},
+  {id:'tecnica',          label:'Falha técnica / sistêmica (não é FCV)',      fcv:false, color:'#9AA59F'},
+  {id:'cliente',          label:'Cliente / pagamento / regra (não é FCV)',    fcv:false, color:'#C9D1CC'},
+  {id:'naoclass',         label:'Não classificado',                           fcv:null,  color:'#5C6B63'},
+  {id:'outros',           label:'Outros (a classificar)',                     fcv:null,  color:'#D98E04'},
+];
+const NO_REG = {id:'semregistro', label:'Sem registro de erro', fcv:null, color:'#DCE6DA'};
+const CAUSE_BY_ID = Object.fromEntries([...CAUSES, NO_REG].map(c=>[c.id,c]));
+
+/* Mapeamento padrão Erro → Causa (HIPÓTESE). Chaves comparadas após normalização. */
+const DEFAULT_MAP = [
+  ['Sem carro em vaga - Veículo não trancado via ble','gerenciamento'],
+  ['Não possui fotos de conferência e de clientes','higienizacao'],
+  ['Erro converter documento para PDF','tecnica'],
+  ['Falha ao enviar mensagem','tecnica'],
+  ['Erro ao enviar a comunicação','tecnica'],
+  ['Sem Evento de Erro Encontrado','naoclass'],
+];
+/* Sugestões (não aplicadas por padrão): ajudam a classificar o que cair em "Outros" */
+const SUGGEST_RULES = [
+  [/placa ja selecionada|falta de carro|sem carro em vaga/, 'gerenciamento'],
+  [/fotos de conferencia/, 'higienizacao'],
+  [/configcat|orbis|scan ble|erro tecnico|erro na solicitacao|thor|erro ao consultar dados|demora para abrir|compatibiliza|enviar|pdf/, 'tecnica'],
+  [/transac|pagamento|credito|naf |naf$|antifraude|cnh|selfie|cadastro|impediment|faturamento|possuicontratoaberto|permissaousoassinatura|reservacomstatus|horarioforado|desbloqueio|^nsa$|saldo/, 'cliente'],
+];
+
+/* Palavras-chave dos comentários (pt/es/en) */
+const KW = [
+  {id:'falta', label:'Falta de carro', re:/falta de carro|nao tinha (o )?carro|sem carro|nao tinha disponivel|nao estava disponivel|indisponi|no habia|no tenian|no car available|car was not available|nao havia carro|carro que eu escolhi/},
+  {id:'fila',  label:'Fila', re:/\bfila|\bcola\b|\bqueue/},
+  {id:'espera',label:'Espera / demora', re:/esper|demor|aguard|lentid|\blent[oa]\b|\bwait|tardanza|tardo/},
+  {id:'balcao',label:'Balcão', re:/balcao|mostrador|counter/},
+];
+const STOP = new Set('para pela pelo pelos pelas com sem uma umas uns como mais muito muita muitos muitas todo toda todos todas tudo isso esse essa este esta estava estavam esta foram fora sobre entre quando onde porque pois tambem apenas ainda mesmo sempre nada nunca minha meu meus minhas nosso nossa seus suas dele dela eles elas voce voces ser ter tinha tive teve fazer feito sido seja sera vai vou foi sao era eram aqui aquele aquela the and that with for was were this very para que por del los las una unos como muy pero esta este todo bien fue the you your have has had not but are our out from they them there their para isso nao sim bem bom boa otimo otima excelente'.split(' '));
+
+/* =====================================================================
+   2. ESTADO
+   ===================================================================== */
+const STATE = {
+  data:null, quality:null, fileName:'',
+  map:{}, errLabel:{}, flags:{},
+  F:{from:null,to:null,group:[],tipo:[],cause:[],wd:[],hb:[],noRet:'incluir',denom:'total',dateRef:'retirada'},
+  lag:60, tab:'geral',
+  ui:{causeUniverse:'fcv', upUniverse:'fcv', odGroup:[], deficitMode:'hora', heatMetric:'taxa', termFilter:'todos'}
+};
+const charts = {};   // instâncias Chart.js ativas
+const TABLES = {};   // dados tabulares de cada card (ver tabela / CSV)
+const TABS = [
+  ['geral','Visão geral'],['onde','Onde'],['causa','Causa'],['oferta','Oferta × demanda'],
+  ['upgrade','Upgrade e downgrade'],['cliente','Cliente (NPS)'],['insights','Insights'],['qualidade','Qualidade dos dados']
+];
+
+/* =====================================================================
+   3. UTILITÁRIOS
+   ===================================================================== */
+const $ = (s,el=document)=>el.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const norm = s => String(s??'').replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const nospace = s => norm(s).replace(/ /g,'');
+const fmtInt = n => (n==null||isNaN(n))?'–':Math.round(n).toLocaleString('pt-BR');
+const fmtNum = (n,d=1) => (n==null||isNaN(n)||!isFinite(n))?'–':n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct = (x,d=1) => (x==null||isNaN(x)||!isFinite(x))?'–':fmtNum(x*100,d)+'%';
+const fmtPP = (x,d=1) => (x==null||isNaN(x)||!isFinite(x))?'–':(x>=0?'+':'')+fmtNum(x*100,d)+' p.p.';
+const safeDiv = (a,b) => b>0 ? a/b : NaN;
+const fmtDate = d => d?`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`:'–';
+const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const conf = n => n<30?{k:'baixa',t:`Confiança baixa (n=${fmtInt(n)} < 30)`}:n<100?{k:'media',t:`Confiança média (n=${fmtInt(n)})`}:{k:'alta',t:`Confiança alta (n=${fmtInt(n)})`};
+function countBy(arr,fn){const m=new Map();for(const x of arr){const k=fn(x);if(k==null)continue;m.set(k,(m.get(k)||0)+1);}return m;}
+function sortedEntries(m){return [...m.entries()].sort((a,b)=>b[1]-a[1]);}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function mix(h1,h2,t){t=Math.max(0,Math.min(1,t));const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const a=p(h1),b=p(h2);return '#'+a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,'0')).join('');}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;t.setAttribute('role','status');document.body.appendChild(t);setTimeout(()=>t.remove(),2600);}
+
+/* Datas: aceita serial do Excel, Date, "9/21/26 7:22", "10/31/2026", ISO. Sem conversão de fuso: tudo é horário local. */
+function parseDate(v){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return isNaN(v)?null:v;
+  if(typeof v==='number') return serialToDate(v);
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m) return mkDate(+m[1],+m[2],+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?)?/i);
+  if(m){
+    let a=+m[1],b=+m[2],y=+m[3]; if(y<100) y+=2000;
+    let mo=a,d=b; if(a>12){d=a;mo=b;}           // padrão M/D; se o 1º > 12, assume D/M
+    let h=+(m[4]||0); if(m[7]){const pm=m[7].toLowerCase()==='pm'; if(pm&&h<12)h+=12; if(!pm&&h===12)h=0;}
+    return mkDate(y,mo,d,h,+(m[5]||0),+(m[6]||0));
+  }
+  if(/^\d+(\.\d+)?$/.test(s)) return serialToDate(parseFloat(s));
+  return null;
+}
+function serialToDate(n){
+  if(!(n>0&&n<2958466)) return null;
+  const u=new Date(Date.UTC(1899,11,30)+Math.round(n*86400000));
+  return new Date(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate(),u.getUTCHours(),u.getUTCMinutes(),u.getUTCSeconds());
+}
+function mkDate(y,mo,d,h,mi,s){ if(mo<1||mo>12||d<1||d>31) return null; const x=new Date(y,mo-1,d,h,mi,s); return isNaN(x)?null:x; }
+/* Atributos de tempo pré-calculados */
+function tinfo(d){
+  if(!d) return null;
+  const wd=(d.getDay()+6)%7;
+  const ws=new Date(d.getFullYear(),d.getMonth(),d.getDate()-wd);
+  return {t:d.getTime(), d, dk:isoDay(d), wd, h:d.getHours(), band:Math.floor(d.getHours()/3),
+          mk:`${d.getFullYear()}-${pad(d.getMonth()+1)}`, wk:isoDay(ws)};
+}
+const monthLabel = mk => {const [y,m]=mk.split('-');return `${MESES[+m-1]}/${y.slice(2)}`+(STATE.incMk===mk?'*':'');};
+const weekLabel = wk => {const [y,m,d]=wk.split('-');return `${d}/${m}`;};
+const bandLabel = i => `${pad(BANDS[i][0])}h–${pad(BANDS[i][1])}h`;
+
+/* Padronizações */
+function normGroup(v){ if(v==null) return ''; const s=String(v).toUpperCase().replace(/\s+/g,''); return s==='SEMRESERVA'?SEM_RESERVA:s; }
+function normTipo(v){ const n=norm(v); if(n.includes('fast')) return 'Fast'; if(n.includes('balcao')) return 'Balcão'; if(n.includes('checkin')) return 'Checkin Express'; return v?String(v).trim():'Não informado'; }
+function normNps(v){ const n=norm(v); if(n.startsWith('promot')) return 'Promotor'; if(n.startsWith('neutr')) return 'Neutro'; if(n.startsWith('detrat')) return 'Detrator'; return 'Sem nota'; }
+function normContract(v){ if(v==null||v==='') return null; return String(v).trim().replace(/\.0+$/,''); }
+function jornadaOf(tipo,tentou){
+  if(tipo==='Fast') return 'Fast concluído no app';
+  if(tipo==='Balcão') return tentou?'Fast tentado, aberto no balcão':'Balcão sem tentativa Fast registrada';
+  if(tipo==='Checkin Express') return 'Checkin Express';
+  return 'Tipo desconhecido';
+}
+const JORNADAS=['Fast concluído no app','Fast tentado, aberto no balcão','Balcão sem tentativa Fast registrada','Checkin Express','Tipo desconhecido'];
+function moveOf(res,use){ if(!(res in RANK)||!(use in RANK)) return 'fora'; const d=RANK[use]-RANK[res]; return d>0?'up':d<0?'down':'igual'; }
+
+/* =====================================================================
+   4. LEITURA DA PLANILHA E MAPEAMENTO APROXIMADO DE ABAS/COLUNAS
+   ===================================================================== */
+const SPEC = {
+  fcv:{name:'reservas_afetadas_fcv', sheetKeys:['reservasafetadasfcv','reservasafetadas','afetadas','fcv'], cols:{
+    created:{label:'Data/hora de criação da reserva',keys:['datahoracriacaodareserva','criacaodareserva','criacao','datahora','data'],req:true},
+    contract:{label:'Contrato',keys:['contrato','codigocontrato','numerocontrato'],req:true},
+    gRes:{label:'Grupo reservado',keys:['gruporeservado','reservado','grupodareserva'],req:true},
+    gUse:{label:'Grupo utilizado',keys:['grupoutilizado','utilizado'],req:true},
+    tipo:{label:'Tipo de abertura',keys:['tipodeabertura','tipoabertura','abertura','tipo'],req:true}}},
+  cna:{name:'contratos_nao_aproveitados', sheetKeys:['contratosnaoaproveitados','naoaproveitados','aproveitad'], cols:{
+    date:{label:'Data de abertura',keys:['dataaberturadocontrato','dataabertura','dataaberturacontrato','data'],req:true},
+    contract:{label:'Contrato',keys:['contrato','codigocontrato'],req:true},
+    gRes:{label:'Grupo reservado',keys:['gruporeservado','reservado'],req:false},
+    gUse:{label:'Grupo utilizado',keys:['grupoutilizado','utilizado'],req:false},
+    erro:{label:'Erro',keys:['erro','motivo','falha'],req:true}}},
+  ret:{name:'base_retirada', sheetKeys:['baseretirada','retirada','retiradas'], cols:{
+    contract:{label:'codigo_contrato',keys:['codigocontrato','contrato'],req:true},
+    date:{label:'DataAberturaContrato',keys:['dataaberturacontrato','dataabertura','abertura','data'],req:true},
+    gRes:{label:'codigo_grupo_modelo_reserva',keys:['codigogrupomodeloreserva','grupomodeloreserva','gruporeserva','reserva'],req:true},
+    gUse:{label:'GrupoUtilizado',keys:['grupoutilizado','utilizado'],req:true}}},
+  dev:{name:'base_devolucao', sheetKeys:['basedevolucao','devolucao','devolucoes'], cols:{
+    contract:{label:'codigo_contrato',keys:['codigocontrato','contrato'],req:true},
+    gUse:{label:'GrupoUtilizado',keys:['grupoutilizado','utilizado'],req:true},
+    date:{label:'DataFechamentoContrato',keys:['datafechamentocontrato','datafechamento','fechamento','data'],req:true},
+    gRes:{label:'codigo_grupo_modelo_reserva',keys:['codigogrupomodeloreserva','grupomodeloreserva','reserva'],req:false}}},
+  nps:{name:'base_nps', sheetKeys:['basenps','nps'], cols:{
+    contract:{label:'codigo_contrato',keys:['codigocontrato','contrato'],req:true},
+    date:{label:'data',keys:['data','datanps','dataresposta'],req:false},
+    seg:{label:'segmento',keys:['segmento'],req:false},
+    tipo:{label:'TipoAberturaContrato',keys:['tipoaberturacontrato','tipoabertura','abertura'],req:false},
+    fid:{label:'CategoriaFidelidade',keys:['categoriafidelidade','fidelidade'],req:false},
+    grupo:{label:'grupo_carro',keys:['grupocarro','grupo'],req:false},
+    nps:{label:'nps_retirada',keys:['npsretirada','nps','categorianps'],req:true},
+    com:{label:'comentarios',keys:['comentarios','comentario','comment'],req:false}}}
+};
+
+/* Pontua correspondência entre um texto e uma lista de chaves (sem acento, sem espaços) */
+function matchScore(text,keys){
+  const h=nospace(text); let best=0;
+  keys.forEach((k,i)=>{ if(h===k) best=Math.max(best,1000-i*10); else if(h.includes(k)) best=Math.max(best,500-i*10-(h.length-k.length)); });
+  return best;
+}
+function detectSheets(wb){
+  const found={}, used=new Set();
+  const pairs=[];
+  for(const [id,sp] of Object.entries(SPEC)) for(const sn of wb.SheetNames){ const s=matchScore(sn,sp.sheetKeys); if(s>0) pairs.push({id,sn,s}); }
+  pairs.sort((a,b)=>b.s-a.s);
+  for(const p of pairs){ if(found[p.id]||used.has(p.sn)) continue; found[p.id]=p.sn; used.add(p.sn); }
+  return found;
+}
+function mapColumns(headers,cols){
+  const pairs=[];
+  for(const [f,c] of Object.entries(cols)) headers.forEach(h=>{ const s=matchScore(h,c.keys); if(s>0) pairs.push({f,h,s}); });
+  pairs.sort((a,b)=>b.s-a.s);
+  const map={}, used=new Set();
+  for(const p of pairs){ if(map[p.f]||used.has(p.h)) continue; map[p.f]={header:p.h,score:p.s}; used.add(p.h); }
+  return map;
+}
+function readSheet(wb,sheetName,spec){
+  const ws=wb.Sheets[sheetName];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false});
+  const headers=(aoa[0]||[]).map(h=>h==null?'':String(h));
+  const cmap=mapColumns(headers.filter(Boolean),spec.cols);
+  const missing=Object.entries(spec.cols).filter(([f,c])=>c.req&&!cmap[f]).map(([f,c])=>c.label);
+  const idx={}; for(const f in cmap) idx[f]=headers.indexOf(cmap[f].header);
+  const rows=aoa.slice(1).map(r=>{const o={};for(const f in idx)o[f]=r[idx[f]];return o;});
+  return {sheetName,headers,cmap,missing,rows};
+}
+
+/* Limpeza: tipagem e padronização de cada aba */
+function cleanAll(raw){
+  const q={tabs:{}};
+  const tab=(id,rows,fn,dateField)=>{
+    const out=[]; let invalidDate=0, nullContract=0; const nulls={};
+    const fields=Object.keys(raw[id].cmap);
+    fields.forEach(f=>nulls[f]=0);
+    for(const r of rows){
+      fields.forEach(f=>{ if(r[f]==null||r[f]==='') nulls[f]++; });
+      const o=fn(r); if(!o) continue;
+      if(!o.c){nullContract++;continue;}
+      if(dateField && !o.date) invalidDate++;
+      out.push(o);
+    }
+    const seen=new Set(); let dups=0; for(const o of out){ if(seen.has(o.c)) dups++; else seen.add(o.c); }
+    const ds=out.map(o=>o.date).filter(Boolean).map(d=>d.getTime());
+    q.tabs[id]={sheet:raw[id].sheetName,rows:rows.length,kept:out.length,nulls,invalidDate,nullContract,dups,
+      min:ds.length?new Date(Math.min(...ds)):null,max:ds.length?new Date(Math.max(...ds)):null};
+    return out;
+  };
+  const fcv=tab('fcv',raw.fcv.rows,r=>{const d=parseDate(r.created);return {c:normContract(r.contract),date:d,created:d,T:tinfo(d),gRes:normGroup(r.gRes),gUse:normGroup(r.gUse),tipo:normTipo(r.tipo)};},true);
+  const cna=tab('cna',raw.cna.rows,r=>{const d=parseDate(r.date);const e=String(r.erro??'').trim()||'(vazio)';return {c:normContract(r.contract),date:d,T:tinfo(d),gRes:normGroup(r.gRes),gUse:normGroup(r.gUse),err:e,errN:norm(e)};},true);
+  const ret=tab('ret',raw.ret.rows,r=>{const d=parseDate(r.date);return {c:normContract(r.contract),date:d,T:tinfo(d),gRes:normGroup(r.gRes),gUse:normGroup(r.gUse)};},true);
+  const dev=tab('dev',raw.dev.rows,r=>{const d=parseDate(r.date);return {c:normContract(r.contract),date:d,T:tinfo(d),gRes:normGroup(r.gRes),gUse:normGroup(r.gUse)};},true);
+  const nps=tab('nps',raw.nps.rows,r=>{const d=parseDate(r.date);return {c:normContract(r.contract),date:d,T:tinfo(d),seg:String(r.seg??'Não informado').trim()||'Não informado',tipo:normTipo(r.tipo),fid:String(r.fid??'Não informado').trim()||'Não informado',grupo:normGroup(r.grupo),cat:normNps(r.nps),com:r.com==null?'':String(r.com).trim()};},true);
+
+  // Índices por contrato (primeira ocorrência)
+  const idx=list=>{const m=new Map();for(const o of list) if(!m.has(o.c)) m.set(o.c,o);return m;};
+  const retBy=idx(ret), devBy=idx(dev), npsBy=idx(nps), cnaBy=idx(cna);
+  const fcvSet=new Set(fcv.map(r=>r.c));
+  for(const r of fcv){ r.ret=retBy.get(r.c)||null; r.dev=devBy.get(r.c)||null; r.nps=npsBy.get(r.c)||null; r.cna=cnaBy.get(r.c)||null; r.move=moveOf(r.gRes,r.gUse); }
+  for(const r of ret){ r.gEff = r.gRes===SEM_RESERVA ? r.gUse : r.gRes; r.isFcv=fcvSet.has(r.c); r.move=moveOf(r.gRes,r.gUse); }
+  for(const r of cna){ r.isFcv=fcvSet.has(r.c); }
+  for(const r of nps){ r.isFcv=fcvSet.has(r.c); r.kw=kwOf(r.com); }
+
+  /* ---- Enriquecimento pelo código do contrato ----
+     Tipo de abertura de cada retirada buscado nas bases que têm essa informação.
+     Prioridade (P4): reservas_afetadas_fcv > base_nps > contratos_nao_aproveitados (P2). Nada é estimado:
+     sem fonte, o tipo fica "Desconhecido". */
+  const fcvBy=idx(fcv), tipoConf=[];
+  for(const r of ret){
+    const f=fcvBy.get(r.c), n=npsBy.get(r.c), k=cnaBy.get(r.c);
+    r.cna=k||null; r.nps=n||null;
+    let t=null, src='Sem fonte';
+    if(f){ t=f.tipo; src='reservas_afetadas_fcv'; }
+    else if(n&&['Fast','Balcão','Checkin Express'].includes(n.tipo)){ t=n.tipo; src='base_nps'; }
+    else if(k){ t='Balcão'; src='contratos_nao_aproveitados (P2)'; }
+    if(f&&n&&n.tipo!==f.tipo) tipoConf.push([r.c,f.tipo,n.tipo]);
+    r.tipo=t||'Desconhecido'; r.tipoSrc=src;
+    r.tentouFast=!!(k||f)||t==='Fast';
+    r.jornada=jornadaOf(r.tipo,!!(k||f));
+  }
+  for(const r of cna){ r.ret=retBy.get(r.c)||null; r.nps=npsBy.get(r.c)||null; r.Th=r.ret?r.ret.T:null; r.tipoC=r.ret?r.ret.tipo:'Balcão'; }
+  for(const r of nps){ r.cnaRec=cnaBy.get(r.c)||null; const rr=retBy.get(r.c); r.jornada=rr?rr.jornada:jornadaOf(r.tipo,!!(r.cnaRec||r.isFcv));
+    // Para filtrar igual às outras bases: tipo e grupo reservado do contrato (P10); sem retirada, usa o próprio NPS
+    r.tipoC=rr?rr.tipo:(['Fast','Balcão','Checkin Express'].includes(r.tipo)?r.tipo:'Desconhecido'); r.gResC=rr?(rr.gRes===SEM_RESERVA?rr.gUse:rr.gRes):r.grupo; }
+  const cnaRet=cna.filter(r=>r.ret), cnaNps=cna.filter(r=>r.nps);
+  q.enrich={
+    tipoConf,
+    retTot:ret.length,
+    retSrc:sortedEntries(countBy(ret,r=>r.tipoSrc)),
+    retJornada:sortedEntries(countBy(ret,r=>r.jornada)),
+    fcvHora:fcv.filter(r=>r.ret).length, fcvNps:fcv.filter(r=>r.nps).length,
+    cnaHora:cnaRet.length, cnaTot:cna.length, cnaNps:cnaNps.length,
+    cnaNpsBalcao:cnaNps.filter(r=>r.nps.tipo==='Balcão').length,
+    cnaDiaDif:cnaRet.filter(r=>r.date&&r.ret.T&&isoDay(r.date)!==r.ret.T.dk).length,
+    fcvGrpOk:fcv.filter(r=>r.ret&&r.ret.gRes===r.gRes&&r.ret.gUse===r.gUse).length,
+    cnaGrpOk:cnaRet.filter(r=>r.ret.gRes===r.gRes).length
+  };
+
+  // Grupos fora da hierarquia por aba
+  const outH=(list,fields)=>{const m=new Map();for(const o of list)for(const f of fields){const g=o[f];if(g&&g!==SEM_RESERVA&&!(g in RANK))m.set(g,(m.get(g)||0)+1);}return sortedEntries(m);};
+  q.outH={fcv:outH(fcv,['gRes','gUse']),cna:outH(cna,['gRes','gUse']),ret:outH(ret,['gRes','gUse']),dev:outH(dev,['gUse','gRes']),nps:outH(nps,['grupo'])};
+  q.semReserva=ret.filter(r=>r.gRes===SEM_RESERVA).length;
+  return {data:{fcv,cna,ret,dev,nps,fcvSet},quality:q};
+}
+
+/* Palavras-chave de um comentário */
+function kwOf(com){ if(!com) return []; const n=norm(com); return KW.filter(k=>k.re.test(n)).map(k=>k.id); }
+
+/* =====================================================================
+   5. MAPEAMENTO ERRO → CAUSA
+   ===================================================================== */
+function initMapping(){
+  const def=Object.fromEntries(DEFAULT_MAP.map(([e,c])=>[norm(e),c]));
+  STATE.map={}; STATE.errLabel={};
+  for(const r of STATE.data.cna){ if(!(r.errN in STATE.errLabel)){ STATE.errLabel[r.errN]=r.err; STATE.map[r.errN]=def[r.errN]||suggestFor(r.errN)||'outros'; } }
+  STATE.flags=Object.fromEntries([...CAUSES,NO_REG].map(c=>[c.id,c.fcv]));
+}
+function suggestFor(errN){ for(const [re,c] of SUGGEST_RULES) if(re.test(errN)) return c; return null; }
+function causeOfErr(errN){ return STATE.map[errN]||'outros'; }
+function causeOfFcv(r){ return r.cna ? causeOfErr(r.cna.errN) : 'semregistro'; }
+function flagOf(causeId){ return STATE.flags[causeId]; }   // true / false / null
+const causeLabel = id => CAUSE_BY_ID[id]?.label || id;
+const causeColor = id => CAUSE_BY_ID[id]?.color || '#999';
+function factClass(causeId){ const f=flagOf(causeId); if(causeId==='semregistro') return 'semregistro'; return f===true?'fato':f===false?'naofcv':'indet'; }
+const FACT_LABELS = {fato:'FCV de fato',naofcv:'Não é FCV (técnica / cliente)',indet:'Indeterminado',semregistro:'Sem registro de erro'};
+
+/* =====================================================================
+   6. FILTROS E MODELO AGREGADO
+   ===================================================================== */
+function evT(r){ return (STATE.F.dateRef==='retirada' && r.ret && r.ret.T) ? r.ret.T : r.T; }
+function computeModel(){
+  const F=STATE.F, D=STATE.data;
+  const fromT=F.from?F.from.getTime():-Infinity, toT=F.to?F.to.getTime()+86400000-1:Infinity;
+  const inP=T=>T&&T.t>=fromT&&T.t<=toT;
+  const gOk=g=>!F.group.length||F.group.includes(g);
+  const tOk=t=>!F.tipo.length||F.tipo.includes(t);
+  const cOk=c=>!F.cause.length||F.cause.includes(c);
+  const tmOk=T=>!!T&&(!F.wd.length||F.wd.includes(String(T.wd)))&&(!F.hb.length||F.hb.includes(String(T.band)));
+  const nrOk=r=>!(F.noRet==='excluir'&&!r.ret);
+  const fcv=D.fcv.filter(r=>inP(evT(r))&&tmOk(evT(r))&&nrOk(r)&&gOk(r.gRes)&&tOk(r.tipo)&&cOk(causeOfFcv(r)));
+  // Denominador: mesmo período, mesmos grupos e mesmos tipos (tipo pelo contrato). Causa não existe para retiradas sem falha.
+  const retFlow=D.ret.filter(r=>inP(r.T)&&tmOk(r.T)&&gOk(r.gRes));   // fluxo físico do pátio (todos os tipos)
+  const ret=retFlow.filter(r=>tOk(r.tipo));
+  const lagMs=STATE.lag*60000;
+  const devAvail=[];
+  for(const r of D.dev){ if(!r.date) continue; if(!gOk(r.gUse)) continue; const T=tinfo(new Date(r.date.getTime()+lagMs)); if(inP(T)&&tmOk(T)) devAvail.push({g:r.gUse,T}); }
+  const nps=D.nps.filter(r=>inP(r.T)&&tmOk(r.T)&&gOk(r.gResC)&&tOk(r.tipoC));
+  const cna=D.cna.filter(r=>inP(r.T)&&tmOk(r.Th||r.T)&&gOk(r.gRes)&&tOk(r.tipoC)&&cOk(causeOfErr(r.errN)));
+  const known=retFlow.filter(r=>r.tipo!=='Desconhecido').length;
+  const M={fcv,ret,retFlow,devAvail,nps,cna,fcvSet:new Set(fcv.map(r=>r.c)),fromT,toT,cOk,inP,gOk,
+    tipoCov:safeDiv(known,retFlow.length), tipoBiased:F.tipo.length>0&&!F.tipo.includes('Desconhecido')};
+  M.denom = list => denomOf(list,M);
+  M.denomLabel = denomLabel(M);
+  M.sd = supplyDemand(M);
+  return M;
+}
+function denomOf(list,M){
+  const d=STATE.F.denom;
+  if(d==='comreserva') return list.filter(r=>r.gRes!==SEM_RESERVA).length;
+  return list.length;
+}
+function denomLabel(M){
+  const d=STATE.F.denom;
+  const F=STATE.F;
+  const base=d==='comreserva'?'Retiradas com reserva (exclui "Sem reserva")':'Total de retiradas';
+  const parts=[];
+  if(F.group.length) parts.push('grupos '+F.group.join(', '));
+  parts.push(F.tipo.length?'tipos '+F.tipo.join(', ')+' (tipo pelo contrato)':'todos os tipos');
+  return `${base} · ${parts.join(' · ')}`;
+}
+const denomBadge = M => `<span class="denom-label" ${M.tipoBiased?'style="background:var(--alerta-fundo);color:var(--alerta-texto)"':''}>Denominador: ${esc(M.denomLabel)}${M.tipoBiased?' ⚠':''}</span>`;
+
+/* Oferta × demanda por dia × hora × grupo.
+   Demanda = retiradas (grupo reservado; "Sem reserva" usa o utilizado). Oferta = devoluções + tempo de preparo (grupo utilizado). */
+function supplyDemand(M){
+  const slots=new Map(); // `${dk}|${h}|${g}` -> {d,s}
+  const get=k=>{let o=slots.get(k);if(!o){o={d:0,s:0};slots.set(k,o);}return o;};
+  for(const r of M.retFlow) get(`${r.T.dk}|${r.T.h}|${r.gEff}`).d++;   // demanda física: todos os tipos
+  for(const x of M.devAvail) get(`${x.T.dk}|${x.T.h}|${x.g}`).s++;
+  // saldo acumulado no dia (desde 0h) por grupo
+  const dayG=new Map();
+  for(const [k,o] of slots){ const [dk,h,g]=k.split('|'); const key=dk+'|'+g; if(!dayG.has(key)) dayG.set(key,new Array(24).fill(null)); dayG.get(key)[+h]=o; }
+  for(const arr of dayG.values()){ let acc=0; for(let h=0;h<24;h++){ const o=arr[h]; if(o){acc+=o.s-o.d;o.cum=acc;} } }
+  const isDef=o=>{ if(!o) return false; return STATE.ui.deficitMode==='acumulado' ? (o.cum<0) : (o.d>o.s); };
+  // agregados grupo × hora
+  const gh=new Map();
+  for(const [k,o] of slots){ const [,h,g]=k.split('|'); if(!gh.has(g)) gh.set(g,{d:new Array(24).fill(0),s:new Array(24).fill(0),defSlots:new Array(24).fill(0)}); const a=gh.get(g); a.d[+h]+=o.d; a.s[+h]+=o.s; if(isDef(o)) a.defSlots[+h]++; }
+  // teste: taxa de FCV em slots com déficit × sem déficit
+  let fD=0,fO=0; const retDef=[],retOk=[];
+  for(const r of M.fcv){ if(!r.ret) continue; const o=slots.get(`${r.ret.T.dk}|${r.ret.T.h}|${r.gRes}`); if(isDef(o)) fD++; else fO++; }
+  for(const r of M.ret){ const o=slots.get(`${r.T.dk}|${r.T.h}|${r.gEff}`); (isDef(o)?retDef:retOk).push(r); }
+  const days=new Set([...slots.keys()].map(k=>k.split('|')[0])).size;
+  return {slots,gh,fD,fO,retDef,retOk,days,isDef};
+}
+
+/* =====================================================================
+   7. INFRAESTRUTURA DE GRÁFICOS, TABELAS E CSV
+   ===================================================================== */
+function PAL(){ return {verde:cssVar('--verde'),verde2:cssVar('--verde-2'),verde3:cssVar('--verde-3'),lima:cssVar('--lima'),limaE:cssVar('--lima-escuro'),alerta:cssVar('--alerta'),critico:cssVar('--critico'),cinza:'#B9C4BE',texto:cssVar('--texto'),texto2:cssVar('--texto-2')}; }
+function destroyCharts(){ for(const k in charts){ charts[k].destroy(); delete charts[k]; } }
+function card(id,title,sub,o={}){
+  const body=o.html?`<div id="html-${id}"></div>`:`<div class="chart-wrap" style="height:${o.h||300}px"><canvas id="cv-${id}" role="img" aria-label="${esc(title)}"></canvas></div>`;
+  return `<section class="card ${o.wide?'wide':''}" id="card-${id}">
+    <div class="card-head"><h3>${title}</h3>${sub?`<p class="sub" id="sub-${id}">${sub}</p>`:''}</div>
+    <div class="card-body">${body}<div class="tbl-wrap scroll-y" id="tbl-${id}" hidden></div></div>
+    <div class="card-foot">${o.noTable?'':`<button class="btn-ghost" type="button" data-act="tbl" data-id="${id}" aria-expanded="false">Ver tabela</button>`}<button class="btn-ghost" type="button" data-act="csv" data-id="${id}">Exportar CSV</button></div>
+  </section>`;
+}
+function setTable(id,headers,rows,name){ TABLES[id]={headers,rows,name:name||id}; const el=$('#tbl-'+id); if(el&&!el.hidden) el.innerHTML=tableHTML(headers,rows); }
+function tableHTML(headers,rows){
+  return `<table class="dt"><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${
+    rows.map(r=>`<tr>${r.map(v=>`<td class="${typeof v==='number'?'num':''}">${typeof v==='number'?esc(fmtCell(v)):esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+const pctTick = v => { const a=Math.abs(v); const d=Number.isInteger(v)?0:(a<1?2:(Math.abs(v*10-Math.round(v*10))<1e-6?1:2)); return fmtNum(v,d)+'%'; };
+const fmtCell = v => Number.isInteger(v)?fmtInt(v):fmtNum(v,2);
+function exportCSV(id){
+  const t=TABLES[id]; if(!t) return;
+  const cell=v=>{ let s=typeof v==='number'?(Number.isInteger(v)?String(v):v.toFixed(4).replace('.',',')):String(v??''); return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
+  const csv='\ufeff'+[t.headers,...t.rows].map(r=>r.map(cell).join(';')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=(t.name||id).replace(/[^\w\-]+/g,'_')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const id=b.dataset.id;
+  if(b.dataset.act==='tbl'){ const el=$('#tbl-'+id); const t=TABLES[id]; if(!el||!t) return; el.hidden=!el.hidden; if(!el.hidden) el.innerHTML=tableHTML(t.headers,t.rows); b.textContent=el.hidden?'Ver tabela':'Ocultar tabela'; b.setAttribute('aria-expanded',String(!el.hidden)); }
+  if(b.dataset.act==='csv') exportCSV(id);
+});
+function baseOpts(scales,o={}){
+  return {responsive:true,maintainAspectRatio:false,indexAxis:o.horizontal?'y':'x',animation:{duration:250},
+    interaction:{mode:o.mode||'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,usePointStyle:false}},
+      tooltip:{callbacks:{
+        label:ctx=>{const ds=ctx.dataset;const v=ctx.parsed[o.horizontal?'x':'y'];if(v==null)return null;return ` ${ds.label}: ${ds.isPct?fmtNum(v,2)+'%':(ds.fmt?ds.fmt(v):fmtNum(v,Number.isInteger(v)?0:1))}`;},
+        footer:o.footer?items=>o.footer(items[0].dataIndex):undefined}}},
+    scales};
+}
+/* Barras (volume) + linha (taxa %, eixo da direita) */
+function cfgBarLine(labels,bars,line,o={}){
+  const P=PAL();
+  const ds=bars.map((b,i)=>({type:'bar',label:b.label,data:b.data,backgroundColor:b.colors||b.color||[P.verde,P.verde2,P.verde3][i%3],borderRadius:4,yAxisID:'y',order:2,stack:o.stacked?'s':undefined,isPct:b.isPct}));
+  if(line) ds.push({type:'line',label:line.label,data:line.data,borderColor:line.color||P.limaE,backgroundColor:line.color||P.limaE,yAxisID:'y1',tension:0,pointRadius:3,borderWidth:2.5,order:1,spanGaps:true,isPct:true});
+  const sc={x:{stacked:!!o.stacked,grid:{display:false},ticks:{autoSkip:o.autoSkip!==false,maxRotation:o.rot??0}},
+            y:{stacked:!!o.stacked,beginAtZero:true,title:{display:true,text:o.yTitle||'Reservas afetadas'},ticks:{callback:v=>o.yPct?pctTick(v):fmtInt(v)}}};
+  if(line) sc.y1={position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:line.axis||'Taxa de FCV (%)'},ticks:{callback:v=>pctTick(v)},max:line.max};
+  if(o.yMax) sc.y.max=o.yMax;
+  return {type:'bar',data:{labels,datasets:ds},options:baseOpts(sc,o)};
+}
+function cfgHBar(labels,sets,o={}){
+  const P=PAL();
+  const ds=sets.map((s,i)=>({label:s.label,data:s.data,backgroundColor:s.colors||s.color||[P.verde,P.verde2,P.verde3][i%3],borderRadius:4,isPct:s.isPct,stack:o.stacked?'s':undefined}));
+  const sc={x:{stacked:!!o.stacked,beginAtZero:true,max:o.xMax,title:{display:!!o.xTitle,text:o.xTitle||''},ticks:{callback:v=>o.pct?fmtNum(v,0)+'%':fmtInt(v)}},y:{stacked:!!o.stacked,grid:{display:false},ticks:{autoSkip:false,callback:function(v){const l=this.getLabelForValue(v);return l.length>48?l.slice(0,46)+'…':l;}}}};
+  return {type:'bar',data:{labels,datasets:ds},options:baseOpts(sc,{...o,horizontal:true,mode:o.mode||'index'})};
+}
+function draw(id,cfg){ const cv=$('#cv-'+id); if(!cv) return; if(charts[id]) charts[id].destroy(); charts[id]=new Chart(cv,cfg); }
+/* Mapa de calor em HTML (acessível e já tabular) */
+function heatHTML(rowLabels,colLabels,vals,o){
+  const flat=vals.flat().filter(v=>v!=null&&!isNaN(v));
+  const max=Math.max(0,...flat.map(Math.abs));
+  const color=v=>{ if(v==null||isNaN(v)) return ['#F4F6F4','#9AA59F']; if(o.diverging&&v<0){const t=Math.abs(v)/(max||1);return [mix('#FFFFFF','#C2410C',.15+.85*t),t>.55?'#fff':'#1F2A24'];} const t=max?Math.abs(v)/max:0; return [mix('#FFFFFF','#0B6E3A',.08+.92*t),t>.55?'#fff':'#1F2A24']; };
+  let h=`<div class="tbl-wrap"><table class="heat" aria-label="${esc(o.aria||'Mapa de calor')}"><thead><tr><th scope="col">${esc(o.corner||'')}</th>${colLabels.map(c=>`<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  rowLabels.forEach((r,i)=>{ h+=`<tr><th scope="row" class="rh">${esc(r)}</th>`; colLabels.forEach((c,j)=>{ const v=vals[i][j]; const [bg,fg]=color(v); const tip=o.tip?o.tip(i,j,v):''; const low=o.low&&o.low(i,j)&&v!=null&&!isNaN(v); h+=`<td style="background:${bg};color:${fg};${low?'opacity:.55':''}" title="${esc(tip)}" class="${o.diag&&o.diag(i,j)?'diag':''}">${v==null||isNaN(v)?'·':esc(o.fmt(v))+(low?'*':'')}</td>`; }); h+='</tr>'; });
+  h+='</tbody></table></div>';
+  if(o.legend) h+=`<div class="heat-legend">${o.legend}</div>`;
+  return h;
+}
+
+/* =====================================================================
+   8. RENDERIZAÇÃO POR ABA
+   ===================================================================== */
+function kpi(label,val,sub,warn){ const txt=/[a-zA-Z]{4,}/.test(String(val).replace(/<[^>]+>/g,''))?' txt':''; return `<div class="kpi ${warn?'warn':''}"><div class="k-label">${label}</div><div class="k-val${txt}">${val}</div><div class="k-sub">${sub||''}</div></div>`; }
+
+function npsStats(list){ const n=list.length, c=countBy(list,r=>r.cat); const comNota=n-(c.get('Sem nota')||0); return {n,comNota,pro:c.get('Promotor')||0,neu:c.get('Neutro')||0,det:c.get('Detrator')||0,sem:c.get('Sem nota')||0,detPct:safeDiv(c.get('Detrator')||0,comNota)}; }
+function causeSplit(fcv){
+  const by=countBy(fcv,r=>causeOfFcv(r)); const fact={fato:0,naofcv:0,indet:0,semregistro:0};
+  for(const [c,n] of by) fact[factClass(c)]+=n;
+  return {by,fact};
+}
+function dominantCause(fcv){
+  const {by}=causeSplit(fcv); const factCauses=[...by].filter(([c])=>factClass(c)==='fato').sort((a,b)=>b[1]-a[1]);
+  const tot=factCauses.reduce((s,x)=>s+x[1],0);
+  return factCauses.length?{id:factCauses[0][0],n:factCauses[0][1],share:factCauses[0][1]/tot,tot}:null;
+}
+
+/* ---------- 8.1 Visão geral ---------- */
+function renderGeral(M){
+  const n=M.fcv.length, den=M.denom(M.ret);
+  const fast=M.fcv.filter(r=>r.tipo==='Fast').length;
+  const inH=M.fcv.filter(r=>r.move!=='fora'); const up=inH.filter(r=>r.move==='up').length, down=inH.filter(r=>r.move==='down').length;
+  const dom=dominantCause(M.fcv); const sp=causeSplit(M.fcv);
+  const imp=npsStats(M.nps.filter(r=>M.fcvSet.has(r.c))), non=npsStats(M.nps.filter(r=>!r.isFcv));
+  const matched=M.fcv.filter(r=>r.ret).length;
+  let h=`<h2 class="sec">Visão geral</h2><p class="lead">Retrato do recorte filtrado. Taxas sempre com o denominador declarado. ${denomBadge(M)}</p><div class="kpis">`;
+  h+=kpi('Reservas afetadas por FCV',fmtInt(n),`${fmtInt(matched)} com retirada encontrada (${fmtPct(safeDiv(matched,n))})`);
+  h+=kpi('Taxa de FCV',fmtPct(safeDiv(n,den),2),`${fmtInt(n)} ÷ ${fmtInt(den)} · ${esc(M.denomLabel)}`);
+  h+=kpi('Abertura Fast entre as afetadas',fmtPct(safeDiv(fast,n)),`${fmtInt(fast)} Fast · ${fmtInt(n-fast)} Balcão`);
+  h+=kpi('Com upgrade',fmtPct(safeDiv(up,inH.length)),`sobre ${fmtInt(inH.length)} na hierarquia; ${fmtInt(n-inH.length)} fora da hierarquia`, inH.length<30);
+  h+=kpi('Com downgrade',fmtPct(safeDiv(down,inH.length)),`${fmtInt(down)} reservas · cliente recebeu grupo inferior`, down>0&&safeDiv(down,inH.length)>=.2);
+  h+=kpi('Causa dominante (FCV de fato)',dom?esc(causeLabel(dom.id).split(' (')[0]):'–',dom?`${fmtPct(dom.share)} de ${fmtInt(dom.tot)} com causa de FCV · ${fmtPct(safeDiv(sp.fact.semregistro,n))} sem registro de erro`:'Sem causa de FCV registrada no recorte', !dom||dom.tot<30);
+  h+=kpi('Detratores entre impactados',fmtPct(imp.detPct),`n=${fmtInt(imp.comNota)} com nota · não impactados: ${fmtPct(non.detPct)} (n=${fmtInt(non.comNota)})`, imp.comNota<30);
+  h+=`</div><div class="grid" style="margin-top:16px">`;
+  h+=card('g-week','Evolução semanal: reservas afetadas e taxa de FCV',`Barras = volume; linha = taxa. Semana iniciando na segunda. ${denomBadge(M)}`,{wide:true});
+  h+=card('g-month','Evolução mensal: o problema cresce ou recua?',`Meses com poucas retiradas tornam a taxa instável. ${denomBadge(M)}`);
+  h+=card('g-fact','Quanto das FCV tem causa de FCV de fato?','Separação entre FCV de fato, falhas técnicas/cliente, indeterminado e sem registro de erro.');
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  // semanal
+  const fw=countBy(M.fcv,r=>evT(r).wk), rw=new Map(); for(const r of M.ret){ if(!rw.has(r.T.wk)) rw.set(r.T.wk,[]); rw.get(r.T.wk).push(r); }
+  const weeks=[...new Set([...fw.keys(),...rw.keys()])].sort();
+  const wv=weeks.map(w=>fw.get(w)||0), wr=weeks.map(w=>safeDiv(fw.get(w)||0,M.denom(rw.get(w)||[]))*100);
+  draw('g-week',cfgBarLine(weeks.map(weekLabel),[{label:'Reservas afetadas',data:wv}],{label:'Taxa de FCV',data:wr.map(v=>isNaN(v)?null:v),dec:2},{footer:i=>`Retiradas na semana: ${fmtInt((rw.get(weeks[i])||[]).length)}`,rot:45}));
+  setTable('g-week',['Semana (início)','Reservas afetadas','Denominador','Taxa de FCV (%)'],weeks.map((w,i)=>[w,wv[i],M.denom(rw.get(w)||[]),isNaN(wr[i])?'':wr[i]]),'fcv_semanal');
+  // mensal
+  const fm=countBy(M.fcv,r=>evT(r).mk), rm=new Map(); for(const r of M.ret){ if(!rm.has(r.T.mk)) rm.set(r.T.mk,[]); rm.get(r.T.mk).push(r); }
+  const months=[...new Set([...fm.keys(),...rm.keys()])].sort();
+  const mv=months.map(m=>fm.get(m)||0), mr=months.map(m=>safeDiv(fm.get(m)||0,M.denom(rm.get(m)||[]))*100);
+  draw('g-month',cfgBarLine(months.map(monthLabel),[{label:'Reservas afetadas',data:mv}],{label:'Taxa de FCV',data:mr.map(v=>isNaN(v)?null:v),dec:2},{footer:i=>`Retiradas no mês: ${fmtInt((rm.get(months[i])||[]).length)}`}));
+  setTable('g-month',['Mês','Reservas afetadas','Denominador','Taxa de FCV (%)'],months.map((m,i)=>[monthLabel(m),mv[i],M.denom(rm.get(m)||[]),isNaN(mr[i])?'':mr[i]]),'fcv_mensal');
+  // fato
+  const keys=['fato','naofcv','indet','semregistro'], P=PAL();
+  draw('g-fact',cfgHBar(keys.map(k=>FACT_LABELS[k]),[{label:'Reservas afetadas',data:keys.map(k=>sp.fact[k]),colors:[P.verde,P.cinza,P.texto2,'#DCE6DA']}],{footer:i=>`${fmtPct(safeDiv(sp.fact[keys[i]],n))} do total`}));
+  setTable('g-fact',['Classe','Reservas afetadas','% do total'],keys.map(k=>[FACT_LABELS[k],sp.fact[k],safeDiv(sp.fact[k],n)*100]),'fcv_classe_causa');
+}
+
+/* ---------- 8.2 Onde ---------- */
+function renderOnde(M){
+  const P=PAL(), n=M.fcv.length;
+  const fm=M.fcv.filter(r=>r.ret);
+  let h=`<h2 class="sec">Onde o problema se concentra</h2><p class="lead">Grupo usa o grupo reservado. Tipo de abertura vem do contrato, sem estimativa. Dia, hora e mapa de calor usam o horário da retirada do mesmo contrato: ${fmtInt(fm.length)} de ${fmtInt(n)} reservas afetadas têm esse horário. ${denomBadge(M)}</p><div class="grid">`;
+  h+=card('o-pareto','Pareto por grupo reservado: poucos grupos explicam a maior parte?','Barras = reservas afetadas; linha = % acumulado. A linha cruzando 80% mostra quantos grupos concentram o problema.',{wide:true});
+  h+=card('o-rate','Taxa de FCV por grupo reservado: quem sofre mais, proporcionalmente?',`Âmbar = taxa ≥ 1,5× a média e pelo menos 30 retiradas no grupo. ${denomBadge(M)}`,{h:320});
+  h+=card('o-jornada','Jornada de abertura das retiradas, identificada pelo contrato','…',{h:320});
+  h+=card('o-fbnps','Taxa de FCV por jornada, na amostra NPS (premissa P3)','…',{h:320});
+  h+=card('o-wd','Por dia da semana: em que dia a taxa sobe?',`Somente reservas com horário de retirada. ${denomBadge(M)}`);
+  h+=card('o-hour','Por hora da retirada: em que horário a taxa sobe?',`Somente reservas com horário de retirada. ${denomBadge(M)}`);
+  h+=card('o-heat','Mapa de calor dia da semana × faixa de 3 horas','',{html:true,wide:true});
+  h+=card('o-month','Por mês: o problema é sazonal?',`Mês pela data escolhida em "Data da FCV". <b>* Mês incompleto:</b> a base de FCV só tem reservas criadas a partir de ${fmtDate(STATE.minCreated)}. ${denomBadge(M)}`);
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  // Pareto
+  const byG=sortedEntries(countBy(M.fcv,r=>r.gRes)); let acc=0; const cum=byG.map(([,c])=>(acc+=c)/n*100);
+  const colors=byG.map((_,i)=>cum[i-1]===undefined||cum[i-1]<80?P.verde:P.verde3);
+  draw('o-pareto',cfgBarLine(byG.map(x=>x[0]),[{label:'Reservas afetadas',data:byG.map(x=>x[1]),colors}],{label:'% acumulado',data:cum,axis:'% acumulado',max:100,dec:0},{footer:i=>`${(byG[i][0] in RANK)?'Na hierarquia (posição '+RANK[byG[i][0]]+')':'Fora da hierarquia'}`}));
+  setTable('o-pareto',['Grupo reservado','Reservas afetadas','% do total','% acumulado'],byG.map(([g,c],i)=>[g,c,c/n*100,cum[i]]),'pareto_grupo');
+  // Taxa por grupo
+  const retG=new Map(); for(const r of M.ret){ if(!retG.has(r.gRes)) retG.set(r.gRes,[]); retG.get(r.gRes).push(r); }
+  const avg=safeDiv(n,M.denom(M.ret));
+  const gl=[...new Set([...byG.map(x=>x[0])])].filter(g=>retG.has(g)).sort((a,b)=>(RANK[a]||99)-(RANK[b]||99)||a.localeCompare(b));
+  const fG=countBy(M.fcv,r=>r.gRes);
+  const rates=gl.map(g=>safeDiv(fG.get(g)||0,M.denom(retG.get(g)))*100);
+  const rc=gl.map((g,i)=>rates[i]>=avg*150&&retG.get(g).length>=30?P.alerta:P.verde);
+  draw('o-rate',cfgBarLine(gl,[{label:'Taxa de FCV (%)',data:rates,colors:rc,isPct:true}],null,{yTitle:'Taxa de FCV (%)',yPct:true,footer:i=>`${fmtInt(fG.get(gl[i])||0)} afetadas ÷ ${fmtInt(M.denom(retG.get(gl[i])))} (denominador) · média ${fmtPct(avg,2)}`}));
+  setTable('o-rate',['Grupo reservado','Reservas afetadas','Denominador','Taxa (%)','Retiradas (n)'],gl.map((g,i)=>[g,fG.get(g)||0,M.denom(retG.get(g)),rates[i],retG.get(g).length]),'taxa_grupo');
+  // Jornada de abertura por contrato (sem estimativa)
+  renderJornada(M);
+  // Dia da semana
+  const fw=countBy(fm,r=>r.ret.T.wd), rw=Array.from({length:7},()=>[]); M.ret.forEach(r=>rw[r.T.wd].push(r));
+  const wv=WD.map((_,i)=>fw.get(i)||0), wr=WD.map((_,i)=>safeDiv(wv[i],M.denom(rw[i]))*100);
+  draw('o-wd',cfgBarLine(WD,[{label:'Reservas afetadas',data:wv}],{label:'Taxa de FCV',data:wr,dec:2},{footer:i=>`Retiradas: ${fmtInt(rw[i].length)}`}));
+  setTable('o-wd',['Dia','Reservas afetadas','Denominador','Taxa (%)'],WD.map((d,i)=>[d,wv[i],M.denom(rw[i]),wr[i]]),'fcv_dia_semana');
+  // Hora
+  const fh=countBy(fm,r=>r.ret.T.h), rh=Array.from({length:24},()=>[]); M.ret.forEach(r=>rh[r.T.h].push(r));
+  const hl=[...Array(24).keys()].map(x=>pad(x)+'h'), hv=hl.map((_,i)=>fh.get(i)||0), hr=hl.map((_,i)=>safeDiv(hv[i],M.denom(rh[i]))*100);
+  draw('o-hour',cfgBarLine(hl,[{label:'Reservas afetadas',data:hv}],{label:'Taxa de FCV',data:hr.map(v=>isNaN(v)?null:v),dec:1},{footer:i=>`Retiradas: ${fmtInt(rh[i].length)}${rh[i].length<30?' (n < 30: taxa instável)':''}`}));
+  setTable('o-hour',['Hora','Reservas afetadas','Denominador','Taxa (%)','Retiradas (n)'],hl.map((x,i)=>[x,hv[i],M.denom(rh[i]),isNaN(hr[i])?'':hr[i],rh[i].length]),'fcv_hora');
+  // Heatmap
+  renderHeatWd(M,fm);
+  // Mês
+  const fmo=countBy(M.fcv,r=>evT(r).mk), rmo=new Map(); M.ret.forEach(r=>{ if(!rmo.has(r.T.mk)) rmo.set(r.T.mk,[]); rmo.get(r.T.mk).push(r); });
+  const ms=[...new Set([...fmo.keys(),...rmo.keys()])].sort();
+  const mv=ms.map(m=>fmo.get(m)||0), mr=ms.map(m=>safeDiv(mv[ms.indexOf(m)],M.denom(rmo.get(m)||[]))*100);
+  draw('o-month',cfgBarLine(ms.map(monthLabel),[{label:'Reservas afetadas',data:mv}],{label:'Taxa de FCV',data:mr.map(v=>isNaN(v)?null:v),dec:2}));
+  setTable('o-month',['Mês','Reservas afetadas','Denominador','Taxa (%)'],ms.map((m,i)=>[monthLabel(m),mv[i],M.denom(rmo.get(m)||[]),isNaN(mr[i])?'':mr[i]]),'fcv_mes');
+}
+function renderHeatWd(M,fm){
+  const metric=STATE.ui.heatMetric;
+  const cntF=Array.from({length:7},()=>new Array(8).fill(0)), lists=Array.from({length:7},()=>Array.from({length:8},()=>[]));
+  fm.forEach(r=>cntF[r.ret.T.wd][r.ret.T.band]++); M.ret.forEach(r=>lists[r.T.wd][r.T.band].push(r));
+  const vals=cntF.map((row,i)=>row.map((c,j)=>metric==='taxa'?(lists[i][j].length?safeDiv(c,M.denom(lists[i][j]))*100:null):c));
+  const el=$('#html-o-heat');
+  el.innerHTML=`<div class="toolbar"><label for="heatMetric" class="note">Métrica</label><select id="heatMetric" class="btn-ghost"><option value="taxa">Taxa de FCV (%)</option><option value="volume">Volume de reservas afetadas</option></select><span class="note">Passe o mouse para ver n. Asterisco e cor esmaecida = menos de 30 retiradas ou menos de 3 afetadas (taxa instável).</span></div>`+
+    heatHTML(WD,BANDS.map((_,i)=>bandLabel(i)),vals,{corner:'Dia / faixa',aria:'Mapa de calor dia da semana por faixa de horário',
+      fmt:v=>metric==='taxa'?fmtNum(v,1)+'%':fmtInt(v),
+      tip:(i,j)=>`${WD[i]} ${bandLabel(j)}: ${cntF[i][j]} afetadas, ${lists[i][j].length} retiradas${lists[i][j].length<30?' (n < 30)':''}`,
+      low:(i,j)=>metric==='taxa'&&(lists[i][j].length<30||cntF[i][j]<3),
+      legend:`<span class="swatch" style="background:${mix('#FFFFFF','#0B6E3A',.1)}"></span> menor <span class="swatch" style="background:#0B6E3A"></span> maior`});
+  $('#heatMetric').value=metric;
+  $('#heatMetric').onchange=e=>{STATE.ui.heatMetric=e.target.value;renderHeatWd(M,fm);};
+  const sub=$('#card-o-heat .sub'); if(!sub) $('#card-o-heat .card-head').insertAdjacentHTML('beforeend',`<p class="sub">Leitura: células mais escuras = ${metric==='taxa'?'maior taxa':'mais reservas afetadas'}. Horário da retirada. ${denomBadge(M)}</p>`);
+  else sub.innerHTML=`Leitura: células mais escuras = ${metric==='taxa'?'maior taxa':'mais reservas afetadas'}. Horário da retirada. ${denomBadge(M)}`;
+  setTable('o-heat',['Dia','Faixa','Reservas afetadas','Retiradas','Denominador','Taxa (%)'],WD.flatMap((d,i)=>BANDS.map((_,j)=>[d,bandLabel(j),cntF[i][j],lists[i][j].length,M.denom(lists[i][j]),lists[i][j].length?safeDiv(cntF[i][j],M.denom(lists[i][j]))*100:''])),'heatmap_dia_faixa');
+}
+
+function renderJornada(M){
+  const P=PAL();
+  const J=JORNADAS.filter(j=>M.ret.some(r=>r.jornada===j));
+  const retJ=J.map(j=>M.ret.filter(r=>r.jornada===j));
+  const fcvJ=retJ.map(l=>l.filter(r=>M.fcvSet.has(r.c)).length);
+  const known=M.ret.filter(r=>r.jornada!=='Tipo desconhecido').length;
+  const cnaR=M.ret.filter(r=>r.cna&&M.cOk(causeOfErr(r.cna.errN))), cnaF=cnaR.filter(r=>M.fcvSet.has(r.c)).length;
+  $('#sub-o-jornada').innerHTML=`Tipo encontrado pelo contrato em reservas_afetadas_fcv, base_nps ou contratos_nao_aproveitados para ${fmtInt(known)} de ${fmtInt(M.ret.length)} retiradas (${fmtPct(safeDiv(known,M.ret.length))}). O restante não aparece em nenhuma base com tipo e fica como desconhecido. <span class="denom-label">Exato: ${fmtInt(cnaF)} de ${fmtInt(cnaR.length)} jornadas Fast que falharam foram FCV (${fmtPct(safeDiv(cnaF,cnaR.length))})</span>`;
+  draw('o-jornada',cfgHBar(J,[{label:'Retiradas',data:retJ.map(l=>l.length),colors:J.map(j=>j==='Tipo desconhecido'?'#DCE6DA':j.startsWith('Fast tentado')?P.alerta:j.startsWith('Fast')?P.verde:P.verde2)}],{footer:i=>`${fmtInt(fcvJ[i])} reservas afetadas por FCV nesta jornada · fontes: ${[...countBy(retJ[i],r=>r.tipoSrc)].map(([k,v])=>k+' '+v).join(', ')}`}));
+  setTable('o-jornada',['Jornada','Retiradas','% das retiradas','Reservas afetadas por FCV','Fontes do tipo (contrato)'],J.map((j,i)=>[j,retJ[i].length,safeDiv(retJ[i].length,M.ret.length)*100,fcvJ[i],[...countBy(retJ[i],r=>r.tipoSrc)].map(([k,v])=>k+': '+v).join('; ')]),'jornada_por_contrato');
+  // Taxa por jornada só onde o universo tem tipo conhecido para todos: respondentes do NPS
+  const smp=M.ret.filter(r=>r.nps);
+  const Js=J.filter(j=>j!=='Tipo desconhecido');
+  const st=Js.map(j=>{const l=smp.filter(r=>r.jornada===j);const f=l.filter(r=>M.fcvSet.has(r.c)).length;return {j,n:l.length,f,r:safeDiv(f,l.length)};});
+  const totF=st.reduce((a,x)=>a+x.f,0);
+  $('#sub-o-fbnps').innerHTML=`Universo: ${fmtInt(smp.length)} retiradas cujo contrato respondeu o NPS, todas com tipo conhecido. A taxa é exata nessa amostra; vale para o total só se a amostra representar as retiradas (P3). ${totF<30?`<b>Só ${totF} reservas afetadas na amostra: leitura indicativa.</b>`:''} <span class="denom-label">Denominador: retiradas da jornada que responderam o NPS</span>`;
+  draw('o-fbnps',cfgBarLine(st.map(x=>x.j),[{label:'Taxa de FCV (%)',data:st.map(x=>x.r*100),colors:st.map(x=>x.n<30||x.f<5?'#C9D1CC':x.j.startsWith('Fast tentado')?P.alerta:P.verde),isPct:true}],null,{yTitle:'Taxa de FCV (%)',yPct:true,footer:i=>`${st[i].f} afetadas ÷ ${st[i].n} retiradas na amostra${st[i].f<5?' (menos de 5 casos: instável)':''}`}));
+  setTable('o-fbnps',['Jornada','Retiradas na amostra NPS','Reservas afetadas','Taxa (%)'],st.map(x=>[x.j,x.n,x.f,x.r*100]),'taxa_jornada_amostra_nps');
+}
+
+/* ---------- 8.3 Causa ---------- */
+function renderCausa(M,keepEditor){
+  const uni=STATE.ui.causeUniverse;
+  if(!keepEditor){
+    let h=`<h2 class="sec">Qual é a principal causa</h2>
+    <p class="lead">A coluna Erro não segue a taxonomia do negócio. O mapeamento Erro → Causa abaixo é uma <b>hipótese editável</b>: ao mudar uma linha, todos os gráficos, KPIs e insights se recalculam. Reservas afetadas que não aparecem em contratos_nao_aproveitados ficam como "Sem registro de erro".</p>
+    <div class="toolbar"><label for="causeUni" class="note"><b>Universo</b></label>
+      <select id="causeUni" class="btn-ghost"><option value="fcv">Reservas afetadas por FCV</option><option value="cna">Todos os contratos não aproveitados (jornadas Fast que falharam)</option></select></div>
+    <div class="grid" id="causeCharts"></div>
+    <h2 class="sec">Mapeamento Erro → Causa (hipótese editável)</h2><div class="card"><div class="card-body" id="mapEditor"></div></div>`;
+    $('#main').innerHTML=h;
+    $('#causeUni').value=uni;
+    $('#causeUni').onchange=e=>{STATE.ui.causeUniverse=e.target.value;destroyCharts();renderCausa(computeModel(),true);};
+    renderMapEditor();
+  }
+  const isF=uni==='fcv';
+  const items=isF?M.fcv.map(r=>({cause:causeOfFcv(r),err:r.cna?r.cna.err:'(sem registro em não aproveitados)',g:r.gRes,band:r.ret?r.ret.T.band:null})):M.cna.map(r=>({cause:causeOfErr(r.errN),err:r.err,g:r.gRes,band:r.Th?r.Th.band:null}));
+  const n=items.length;
+  let h=card('c-dist','Distribuição das causas: qual explica mais casos?',`${isF?'Reservas afetadas':'Contratos não aproveitados'} no recorte: ${fmtInt(n)}.`,{h:300});
+  h+=card('c-fact','FCV de fato × falha técnica / cliente × indeterminado','Só "FCV de fato" deve entrar no plano de ação operacional; falhas técnicas pedem outro dono. As classes de cada causa são editáveis abaixo.',{h:300});
+  h+=card('c-err','Erros brutos mais frequentes (como vieram da planilha)','Cor = causa mapeada. Use para revisar o mapeamento.',{h:420,wide:true});
+  h+=card('c-group','Causa × grupo reservado: a causa muda conforme o grupo?','Barras empilhadas por causa; grupos com mais casos à esquerda.',{h:340,wide:true});
+  const nb=items.filter(x=>x.band!=null).length;
+  h+=card('c-band','Causa × faixa de horário da retirada',`Horário buscado pelo contrato na base_retirada: ${fmtInt(nb)} de ${fmtInt(n)} casos têm hora.`,{h:320,wide:true});
+  $('#causeCharts').innerHTML=h;
+  const P=PAL();
+  const byC=sortedEntries(countBy(items,x=>x.cause));
+  draw('c-dist',cfgHBar(byC.map(x=>causeLabel(x[0])),[{label:'Casos',data:byC.map(x=>x[1]),colors:byC.map(x=>causeColor(x[0]))}],{footer:i=>`${fmtPct(byC[i][1]/n)} do universo · classe: ${FACT_LABELS[factClass(byC[i][0])]}`}));
+  setTable('c-dist',['Causa','Casos','%','Classe'],byC.map(([c,k])=>[causeLabel(c),k,k/n*100,FACT_LABELS[factClass(c)]]),'causas');
+  const fk=['fato','naofcv','indet','semregistro']; const fc=countBy(items,x=>factClass(x.cause));
+  draw('c-fact',cfgHBar(fk.map(k=>FACT_LABELS[k]),[{label:'Casos',data:fk.map(k=>fc.get(k)||0),colors:[P.verde,P.cinza,P.texto2,'#DCE6DA']}],{footer:i=>fmtPct(safeDiv(fc.get(fk[i])||0,n))}));
+  setTable('c-fact',['Classe','Casos','%'],fk.map(k=>[FACT_LABELS[k],fc.get(k)||0,safeDiv(fc.get(k)||0,n)*100]),'classe_causa');
+  const byE=sortedEntries(countBy(items,x=>x.err)).slice(0,18);
+  const eCause=new Map(items.map(x=>[x.err,x.cause]));
+  draw('c-err',cfgHBar(byE.map(x=>x[0]),[{label:'Casos',data:byE.map(x=>x[1]),colors:byE.map(x=>causeColor(eCause.get(x[0])))}],{footer:i=>`Causa: ${causeLabel(eCause.get(byE[i][0]))}`}));
+  setTable('c-err',['Erro bruto','Casos','Causa mapeada'],sortedEntries(countBy(items,x=>x.err)).map(([e,k])=>[e,k,causeLabel(eCause.get(e))]),'erros_brutos');
+  const gs=sortedEntries(countBy(items,x=>x.g)).slice(0,14).map(x=>x[0]);
+  const cs=byC.map(x=>x[0]);
+  const gm=cs.map(c=>gs.map(g=>items.filter(x=>x.cause===c&&x.g===g).length));
+  draw('c-group',{type:'bar',data:{labels:gs,datasets:cs.map((c,i)=>({label:causeLabel(c),data:gm[i],backgroundColor:causeColor(c),stack:'s'}))},options:baseOpts({x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'Casos'}}})});
+  setTable('c-group',['Grupo',...cs.map(causeLabel)],gs.map((g,j)=>[g,...cs.map((c,i)=>gm[i][j])]),'causa_grupo');
+  {
+    const bl=BANDS.map((_,i)=>bandLabel(i));
+    const bm=cs.map(c=>BANDS.map((_,j)=>items.filter(x=>x.cause===c&&x.band===j).length));
+    draw('c-band',{type:'bar',data:{labels:bl,datasets:cs.map((c,i)=>({label:causeLabel(c),data:bm[i],backgroundColor:causeColor(c),stack:'s'}))},options:baseOpts({x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'Casos'}}})});
+    setTable('c-band',['Faixa',...cs.map(causeLabel)],bl.map((b,j)=>[b,...cs.map((c,i)=>bm[i][j])]),'causa_faixa');
+  }
+}
+function renderMapEditor(){
+  const D=STATE.data;
+  const tot=countBy(D.cna,r=>r.errN), inF=countBy(D.cna.filter(r=>r.isFcv),r=>r.errN);
+  const errs=[...tot.keys()].sort((a,b)=>tot.get(b)-tot.get(a));
+  const opts=id=>CAUSES.map(c=>`<option value="${c.id}" ${c.id===id?'selected':''}>${esc(c.label)}</option>`).join('');
+  const nOut=errs.filter(e=>STATE.map[e]==='outros').length;
+  let h=`<div class="toolbar"><button class="btn btn-verde" type="button" id="applySug">Aplicar todas as sugestões</button><button class="btn-ghost" type="button" id="resetMap">Restaurar padrão (hipótese inicial)</button>
+    <span class="note">${nOut} erro(s) em "Outros (a classificar)", destacados em âmbar.</span></div>
+    <div class="tbl-wrap scroll-y"><table class="dt map-table"><thead><tr><th>Erro bruto</th><th>Ocorrências (todos)</th><th>Em reservas afetadas</th><th>Causa (editável)</th><th>Sugestão</th></tr></thead><tbody>`;
+  for(const e of errs){ const s=suggestFor(e); const cur=STATE.map[e];
+    h+=`<tr class="${cur==='outros'?'unmapped':''}"><td>${esc(STATE.errLabel[e])}</td><td class="num">${fmtInt(tot.get(e))}</td><td class="num">${fmtInt(inF.get(e)||0)}</td>
+      <td><select data-err="${esc(e)}" aria-label="Causa para ${esc(STATE.errLabel[e])}">${opts(cur)}</select></td>
+      <td>${s&&s!==cur?`<button class="btn-ghost" type="button" data-sug="${esc(e)}" data-c="${s}">Usar: ${esc(causeLabel(s))}</button>`:'<span class="note">–</span>'}</td></tr>`; }
+  h+=`</tbody></table></div>
+    <h3 style="margin:16px 0 6px;font-size:15px">Classe de cada causa</h3><p class="note">Marque o que conta como FCV de fato. Desmarque para "não é FCV". "Indeterminado" fica fora dos dois grupos.</p>
+    <div class="tbl-wrap"><table class="dt"><thead><tr><th>Causa</th><th>Classe</th></tr></thead><tbody>${[...CAUSES,NO_REG].map(c=>`<tr><td>${esc(c.label)}</td><td><select data-flag="${c.id}" aria-label="Classe de ${esc(c.label)}"><option value="true" ${STATE.flags[c.id]===true?'selected':''}>FCV de fato</option><option value="false" ${STATE.flags[c.id]===false?'selected':''}>Não é FCV</option><option value="null" ${STATE.flags[c.id]==null?'selected':''}>Indeterminado</option></select></td></tr>`).join('')}</tbody></table></div>`;
+  const el=$('#mapEditor'); el.innerHTML=h;
+  el.querySelectorAll('select[data-err]').forEach(s=>s.onchange=()=>{STATE.map[s.dataset.err]=s.value; onMappingChange();});
+  el.querySelectorAll('select[data-flag]').forEach(s=>s.onchange=()=>{STATE.flags[s.dataset.flag]=s.value==='null'?null:s.value==='true'; onMappingChange();});
+  el.querySelectorAll('[data-sug]').forEach(b=>b.onclick=()=>{STATE.map[b.dataset.sug]=b.dataset.c; onMappingChange(true);});
+  $('#applySug').onclick=()=>{ for(const e of errs){const s=suggestFor(e); if(s) STATE.map[e]=s;} onMappingChange(true); toast('Sugestões aplicadas ao mapeamento'); };
+  $('#resetMap').onclick=()=>{ initMapping(); onMappingChange(true); toast('Mapeamento padrão restaurado'); };
+}
+function onMappingChange(rebuildEditor){ destroyCharts(); const M=computeModel(); STATE.M=M; renderCausa(M,true); if(rebuildEditor) renderMapEditor(); else { // só atualiza o destaque de "outros"
+    document.querySelectorAll('select[data-err]').forEach(s=>s.closest('tr').classList.toggle('unmapped',s.value==='outros')); }
+  updateActiveFilters(M); }
+
+/* ---------- 8.4 Oferta × demanda ---------- */
+function renderOferta(M){
+  const sd=M.sd, P=PAL();
+  const groupsAll=[...sd.gh.keys()];
+  const gSel=STATE.ui.odGroup;
+  const agg={d:new Array(24).fill(0),s:new Array(24).fill(0)};
+  for(const [g,a] of sd.gh){ if(gSel.length&&!gSel.includes(g)) continue; for(let i=0;i<24;i++){agg.d[i]+=a.d[i];agg.s[i]+=a.s[i];} }
+  const net=agg.s.map((s,i)=>s-agg.d[i]);
+  const rateDef=safeDiv(sd.fD,M.denom(sd.retDef)), rateOk=safeDiv(sd.fO,M.denom(sd.retOk)), lift=safeDiv(rateDef,rateOk);
+  const mode=STATE.ui.deficitMode==='acumulado'?'saldo acumulado no dia (desde 0h) negativo':'retiradas maiores que carros disponibilizados na mesma hora';
+  let h=`<h2 class="sec">Oferta × demanda: o gargalo é capacidade ou processo?</h2>
+  <p class="lead">Demanda = retiradas por grupo reservado ("Sem reserva" usa o grupo utilizado). Oferta = devoluções do grupo utilizado + ${fmtInt(STATE.lag)} min de preparo (editável na barra de filtros). A demanda física usa retiradas de todos os tipos, porque o carro sai do pátio igual; o filtro de tipo vale para a taxa de FCV dos KPIs. Sem ID do carro e sem estoque inicial, isto mede o <b>fluxo</b>, não a frota parada no pátio. No critério "na hora", uma hora com retirada e sem devolução já conta como déficit (sensível); "acumulado no dia" é mais conservador. Compare os dois antes de concluir.</p>
+  <div class="toolbar">
+    <span class="note" id="lbl-odGroup"><b>Grupos no gráfico por hora</b></span><div class="ms" id="odGroup"></div>
+    <label class="note" for="defMode"><b>Critério de déficit</b></label><select id="defMode" class="btn-ghost"><option value="hora">Na hora: retiradas &gt; disponibilizados</option><option value="acumulado">Acumulado no dia &lt; 0</option></select>
+  </div>
+  <div class="kpis">
+    ${kpi('Taxa de FCV em horas com déficit',fmtPct(rateDef,2),`${fmtInt(sd.fD)} afetadas ÷ ${fmtInt(M.denom(sd.retDef))}`,sd.fD<30)}
+    ${kpi('Taxa de FCV em horas sem déficit',fmtPct(rateOk,2),`${fmtInt(sd.fO)} afetadas ÷ ${fmtInt(M.denom(sd.retOk))}`,sd.fO<30)}
+    ${kpi('Razão déficit ÷ sem déficit',isNaN(lift)?'–':fmtNum(lift,2)+'×',lift>=1.3?'FCV mais frequente quando falta carro no fluxo':'FCV não depende claramente do déficit', lift>=1.3)}
+    ${kpi('Retiradas em hora com déficit',fmtPct(safeDiv(sd.retDef.length,sd.retDef.length+sd.retOk.length)),`Critério: ${mode}`)}
+  </div>
+  <p class="note">${denomBadge(M)} · Slots = dia × hora × grupo. Reservas afetadas consideradas: as que têm horário de retirada.</p>
+  <div class="grid" style="margin-top:12px">`;
+  h+=card('od-hour',`Retiradas × carros disponibilizados por hora${gSel.length?' · '+esc(gSel.join(', ')):''}`,`Totais no período (${fmtInt(sd.days)} dias). Linha = saldo (disponibilizados − retiradas); âmbar quando negativo.`,{wide:true,h:330});
+  h+=card('od-heat','Saldo por grupo × hora: onde a demanda supera a oferta?','Vermelho = mais retiradas que carros disponibilizados (soma no período). Grupos com ao menos 50 retiradas.',{html:true,wide:true});
+  h+=card('od-test','FCV coincide com o déficit?','Compara a taxa de FCV nos slots com e sem déficit. Razão alta sugere capacidade; parecida sugere processo.',{h:280});
+  h+=card('od-top','Maiores déficits grupo × hora','Ranking dos piores saldos somados no período.',{html:true});
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  $('#defMode').value=STATE.ui.deficitMode;
+  multiSelect($('#odGroup'),{labelId:'lbl-odGroup',allLabel:'Todos',options:[...HIER.filter(g=>sd.gh.has(g)),...groupsAll.filter(g=>!(g in RANK)).sort()].map(g=>({value:g,label:g})),value:gSel,onChange:v=>{STATE.ui.odGroup=v;refresh();}});
+  $('#defMode').onchange=e=>{STATE.ui.deficitMode=e.target.value;refresh();};
+  const hl=[...Array(24).keys()].map(x=>pad(x)+'h');
+  const cfg=cfgBarLine(hl,[{label:'Retiradas (demanda)',data:agg.d,color:P.verde},{label:'Carros disponibilizados (oferta)',data:agg.s,color:P.verde3}],null,{yTitle:'Quantidade no período',footer:i=>`Média/dia: ${fmtNum(agg.d[i]/sd.days,1)} retiradas × ${fmtNum(agg.s[i]/sd.days,1)} disponibilizados`});
+  cfg.data.datasets.push({type:'line',label:'Saldo (oferta − demanda)',data:net,borderColor:P.texto2,pointBackgroundColor:net.map(v=>v<0?P.alerta:P.verde2),pointRadius:4,yAxisID:'y',order:0,borderWidth:1.5});
+  cfg.options.scales.y.beginAtZero=false;
+  draw('od-hour',cfg);
+  setTable('od-hour',['Hora','Retiradas','Disponibilizados','Saldo','Média/dia retiradas','Média/dia disponibilizados'],hl.map((x,i)=>[x,agg.d[i],agg.s[i],net[i],agg.d[i]/sd.days,agg.s[i]/sd.days]),'oferta_demanda_hora');
+  // heat grupo × hora
+  const gl=[...sd.gh.entries()].filter(([,a])=>a.d.reduce((s,x)=>s+x,0)>=50).map(x=>x[0]).sort((a,b)=>(RANK[a]||99)-(RANK[b]||99)||a.localeCompare(b));
+  const vals=gl.map(g=>{const a=sd.gh.get(g);return a.s.map((s,i)=>(a.d[i]||s)?s-a.d[i]:null);});
+  $('#html-od-heat').innerHTML=heatHTML(gl,hl,vals,{diverging:true,corner:'Grupo / hora',aria:'Saldo de oferta menos demanda por grupo e hora',fmt:v=>fmtInt(v),
+    tip:(i,j)=>{const a=sd.gh.get(gl[i]);return `${gl[i]} ${hl[j]}: ${a.d[j]} retiradas, ${a.s[j]} disponibilizados, ${a.defSlots[j]} dia(s) com déficit`;},
+    legend:`<span class="swatch" style="background:#C2410C"></span> demanda maior que oferta <span class="swatch" style="background:#0B6E3A"></span> oferta maior que demanda`});
+  setTable('od-heat',['Grupo','Hora','Retiradas','Disponibilizados','Saldo','Dias com déficit'],gl.flatMap(g=>{const a=sd.gh.get(g);return hl.map((x,i)=>[g,x,a.d[i],a.s[i],a.s[i]-a.d[i],a.defSlots[i]]);}),'saldo_grupo_hora');
+  draw('od-test',cfgBarLine(['Com déficit','Sem déficit'],[{label:'Taxa de FCV (%)',data:[rateDef*100,rateOk*100],colors:[P.alerta,P.verde],isPct:true}],null,{yTitle:'Taxa de FCV (%)',yPct:true,footer:i=>i===0?`${sd.fD} afetadas em ${sd.retDef.length} retiradas`:`${sd.fO} afetadas em ${sd.retOk.length} retiradas`}));
+  setTable('od-test',['Situação','Reservas afetadas','Retiradas','Denominador','Taxa (%)'],[['Com déficit',sd.fD,sd.retDef.length,M.denom(sd.retDef),rateDef*100],['Sem déficit',sd.fO,sd.retOk.length,M.denom(sd.retOk),rateOk*100]],'teste_deficit');
+  const top=topDeficits(sd,15);
+  $('#html-od-top').innerHTML=top.length?tableHTML(['Grupo','Hora','Retiradas','Disponibilizados','Saldo','Dias com déficit'],top.map(t=>[t.g,pad(t.h)+'h',t.d,t.s,t.net,t.days])):'<p class="note">Nenhum saldo negativo no recorte.</p>';
+  setTable('od-top',['Grupo','Hora','Retiradas','Disponibilizados','Saldo','Dias com déficit'],top.map(t=>[t.g,pad(t.h)+'h',t.d,t.s,t.net,t.days]),'top_deficits');
+}
+function topDeficits(sd,k){ const out=[]; for(const [g,a] of sd.gh) for(let h=0;h<24;h++){ const net=a.s[h]-a.d[h]; if(net<0) out.push({g,h,d:a.d[h],s:a.s[h],net,days:a.defSlots[h]}); } return out.sort((x,y)=>x.net-y.net).slice(0,k); }
+
+/* ---------- 8.5 Upgrade e downgrade ---------- */
+function renderUpgrade(M){
+  const P=PAL(), uni=STATE.ui.upUniverse;
+  const list=uni==='fcv'?M.fcv:M.ret.filter(r=>r.gRes!==SEM_RESERVA);
+  const n=list.length, fora=list.filter(r=>r.move==='fora').length;
+  let h=`<h2 class="sec">Upgrade e downgrade</h2>
+  <p class="lead">Ranking de 1 (B) a 12 (GX). Upgrade = grupo utilizado acima do reservado. Grupos fora da hierarquia (${esc([...new Set(list.flatMap(r=>[r.gRes,r.gUse]).filter(g=>g&&!(g in RANK)))].sort().join(', ')||'nenhum')}) ficam fora do cálculo.</p>
+  <div class="toolbar"><label class="note" for="upUni"><b>Universo</b></label><select id="upUni" class="btn-ghost"><option value="fcv">Reservas afetadas por FCV</option><option value="ret">Todas as retiradas com reserva (referência)</option></select></div>
+  ${fora?`<div class="msg warn">${fmtInt(fora)} de ${fmtInt(n)} registros (${fmtPct(fora/n)}) têm grupo fora da hierarquia e foram excluídos do cálculo de upgrade/downgrade.</div>`:''}
+  <div class="grid" style="margin-top:12px">`;
+  h+=card('u-matrix','Matriz reservado × utilizado: para onde vai o cliente quando falta o carro?','Linhas = grupo reservado; colunas = utilizado. Diagonal (contorno) = mesmo grupo; à direita dela = upgrade; à esquerda = downgrade. Cor = % da linha.',{html:true,wide:true});
+  h+=card('u-share','% de upgrade, igual e downgrade por grupo reservado','Âmbar = downgrade. GX é o topo: não existe upgrade possível.',{h:340,wide:true});
+  h+=card('u-cmp','Downgrade nas FCV × em todas as retiradas','Se o downgrade é bem maior nas FCV, falta de carro está empurrando clientes para baixo.',{h:280});
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  $('#upUni').value=uni; $('#upUni').onchange=e=>{STATE.ui.upUniverse=e.target.value;refresh();};
+  const rows=[...HIER,'Fora'], cols=[...HIER,'Fora'];
+  const key=g=>(g in RANK)?g:'Fora';
+  const cnt=rows.map(()=>new Array(cols.length).fill(0));
+  list.forEach(r=>cnt[rows.indexOf(key(r.gRes))][cols.indexOf(key(r.gUse))]++);
+  const rowsUsed=rows.map((r,i)=>i).filter(i=>cnt[i].some(v=>v>0));
+  const vals=rowsUsed.map(i=>{const t=cnt[i].reduce((a,b)=>a+b,0);return cnt[i].map(v=>v?v/t*100:null);});
+  $('#html-u-matrix').innerHTML=heatHTML(rowsUsed.map(i=>rows[i]),cols,vals,{corner:'Reservado \\ Utilizado',aria:'Matriz grupo reservado por grupo utilizado',fmt:v=>fmtNum(v,0)+'%',
+    diag:(i,j)=>rows[rowsUsed[i]]===cols[j]&&cols[j]!=='Fora',
+    tip:(i,j)=>`${rows[rowsUsed[i]]} → ${cols[j]}: ${cnt[rowsUsed[i]][j]} registros`,
+    legend:`Contorno = mesmo grupo · passe o mouse para ver a contagem`});
+  setTable('u-matrix',['Reservado',...cols],rowsUsed.map(i=>[rows[i],...cnt[i]]),'matriz_reservado_utilizado');
+  const gl=HIER.filter(g=>list.some(r=>r.gRes===g&&r.move!=='fora'));
+  const sh=gl.map(g=>{const l=list.filter(r=>r.gRes===g&&r.move!=='fora');const t=l.length;return {g,t,up:l.filter(r=>r.move==='up').length/t*100,eq:l.filter(r=>r.move==='igual').length/t*100,dn:l.filter(r=>r.move==='down').length/t*100};});
+  draw('u-share',{type:'bar',data:{labels:sh.map(x=>x.g==='GX'?'GX (topo)':x.g),datasets:[
+    {label:'Upgrade',data:sh.map(x=>x.up),backgroundColor:P.verde,stack:'s',isPct:true},
+    {label:'Mesmo grupo',data:sh.map(x=>x.eq),backgroundColor:P.verde3,stack:'s',isPct:true},
+    {label:'Downgrade',data:sh.map(x=>x.dn),backgroundColor:P.alerta,stack:'s',isPct:true}]},
+    options:baseOpts({x:{stacked:true,grid:{display:false}},y:{stacked:true,max:100,beginAtZero:true,ticks:{callback:v=>v+'%'}}},{footer:i=>`n = ${sh[i].t}${sh[i].t<30?' (n < 30)':''}`})});
+  setTable('u-share',['Grupo reservado','n','Upgrade (%)','Mesmo (%)','Downgrade (%)'],sh.map(x=>[x.g,x.t,x.up,x.eq,x.dn]),'upgrade_por_grupo');
+  const pct=(l,m)=>{const v=l.filter(r=>r.move!=='fora');return safeDiv(v.filter(r=>r.move===m).length,v.length)*100;};
+  const all=M.ret.filter(r=>r.gRes!==SEM_RESERVA);
+  const lbl=['Upgrade','Mesmo grupo','Downgrade'], mv=['up','igual','down'];
+  draw('u-cmp',cfgBarLine(lbl,[{label:'Reservas afetadas por FCV',data:mv.map(m=>pct(M.fcv,m)),color:P.verde,isPct:true},{label:'Todas as retiradas com reserva',data:mv.map(m=>pct(all,m)),color:P.verde3,isPct:true}],null,{yTitle:'% dos registros na hierarquia',yPct:true}));
+  setTable('u-cmp',['Movimento','FCV (%)','Todas (%)'],lbl.map((l,i)=>[l,pct(M.fcv,mv[i]),pct(all,mv[i])]),'upgrade_fcv_vs_todas');
+}
+
+/* ---------- 8.6 Cliente ---------- */
+function renderCliente(M){
+  const P=PAL();
+  const imp=M.nps.filter(r=>M.fcvSet.has(r.c)), non=M.nps.filter(r=>!r.isFcv);
+  const si=npsStats(imp), sn=npsStats(non);
+  let h=`<h2 class="sec">Como o cliente é impactado</h2>
+  <p class="lead">Impactados = contratos de reservas afetadas (no recorte) que responderam NPS. Não impactados = contratos que nunca aparecem como FCV. % de detratores calculado sobre quem deu nota.</p>
+  ${si.comNota<30?`<div class="msg warn">Apenas ${fmtInt(si.comNota)} contratos impactados têm nota de NPS. Comparações com n < 30 são indicativas, não conclusivas. Os comentários abaixo ajudam a triangular.</div>`:''}
+  <div class="kpis" style="margin-top:12px">
+    ${kpi('Detratores entre impactados',fmtPct(si.detPct),`n=${fmtInt(si.comNota)} com nota`,si.comNota<30)}
+    ${kpi('Detratores entre não impactados',fmtPct(sn.detPct),`n=${fmtInt(sn.comNota)} com nota`)}
+    ${kpi('Diferença',fmtPP(si.detPct-sn.detPct),'impactados − não impactados',si.detPct-sn.detPct>0.05)}
+    ${(()=>{const sc=npsStats(M.nps.filter(r=>r.cnaRec&&!r.isFcv));return kpi('Detratores nas jornadas Fast que falharam (sem FCV)',fmtPct(sc.detPct),`n=${fmtInt(sc.comNota)} com nota, cruzado pelo contrato`,sc.comNota<30);})()}
+    ${kpi('Comentários que citam falta, fila, espera ou balcão',fmtPct(safeDiv(M.nps.filter(r=>r.kw.length).length,M.nps.filter(r=>r.com).length)),`${fmtInt(M.nps.filter(r=>r.kw.length).length)} de ${fmtInt(M.nps.filter(r=>r.com).length)} comentários`)}
+  </div>
+  <div class="grid" style="margin-top:16px">`;
+  h+=card('n-dist','Distribuição do NPS: impactados × não impactados','Barras 100% empilhadas. Inclui "Sem nota".',{h:220,wide:true});
+  h+=card('n-jornada','NPS por desfecho da jornada, cruzado pelo contrato','Grupos exclusivos. Jornadas Fast que falharam (contratos_nao_aproveitados) dão uma amostra maior que as reservas afetadas para medir o efeito no cliente.',{h:260,wide:true});
+  h+=card('n-seg','% de detratores por segmento','Compara impactados e não impactados dentro do mesmo segmento (n no tooltip).',{h:300});
+  h+=card('n-fid','% de detratores por categoria de fidelidade','Clientes de maior fidelidade são mais sensíveis?',{h:300});
+  h+=card('n-grp','% de detratores por grupo do carro','Grupos com mais respostas.',{h:300,wide:true});
+  h+=card('n-kw','Detratores entre quem cita o problema × quem não cita','Valida o efeito do problema no NPS com mais respostas que o cruzamento direto.',{h:280});
+  h+=card('n-terms','Termos mais frequentes nos comentários','',{html:true});
+  h+=card('n-com','Comentários que citam falta de carro, fila, espera ou balcão','Impactados por FCV primeiro; depois detratores.',{html:true,wide:true});
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  const cats=[['Promotor',P.verde],['Neutro',P.verde3],['Detrator',P.alerta],['Sem nota','#DCE6DA']];
+  draw('n-dist',{type:'bar',data:{labels:[`Impactados (n=${si.n})`,`Não impactados (n=${sn.n})`],datasets:cats.map(([c,col])=>({label:c,data:[si,sn].map(s=>safeDiv(s[{Promotor:'pro',Neutro:'neu',Detrator:'det','Sem nota':'sem'}[c]],s.n)*100),backgroundColor:col,stack:'s',isPct:true}))},
+    options:baseOpts({x:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},y:{stacked:true,grid:{display:false}}},{horizontal:true})});
+  // NPS por desfecho da jornada (grupos exclusivos)
+  const grpN=[
+    ['Reserva afetada por FCV',r=>M.fcvSet.has(r.c)],
+    ['Fast falhou: causa FCV de fato (sem FCV registrada)',r=>!r.isFcv&&r.cnaRec&&factClass(causeOfErr(r.cnaRec.errN))==='fato'],
+    ['Fast falhou: outras causas',r=>!r.isFcv&&r.cnaRec&&factClass(causeOfErr(r.cnaRec.errN))!=='fato'],
+    ['Demais contratos',r=>!r.isFcv&&!r.cnaRec]];
+  const gs=grpN.map(([l,f])=>npsStats(M.nps.filter(f)));
+  draw('n-jornada',{type:'bar',data:{labels:grpN.map((g,i)=>`${g[0]} (n=${gs[i].n})`),datasets:cats.map(([c,col])=>({label:c,data:gs.map(s=>safeDiv(s[{Promotor:'pro',Neutro:'neu',Detrator:'det','Sem nota':'sem'}[c]],s.n)*100),backgroundColor:col,stack:'s',isPct:true}))},
+    options:baseOpts({x:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},y:{stacked:true,grid:{display:false}}},{horizontal:true,footer:i=>`% detratores (com nota): ${fmtPct(gs[i].detPct)} · n com nota=${gs[i].comNota}`})});
+  setTable('n-jornada',['Grupo','n','Promotor','Neutro','Detrator','Sem nota','% detratores (com nota)'],grpN.map((g,i)=>[g[0],gs[i].n,gs[i].pro,gs[i].neu,gs[i].det,gs[i].sem,gs[i].detPct*100]),'nps_por_jornada');
+  setTable('n-dist',['Grupo','n','Promotor','Neutro','Detrator','Sem nota','% detratores (com nota)'],[['Impactados',si.n,si.pro,si.neu,si.det,si.sem,si.detPct*100],['Não impactados',sn.n,sn.pro,sn.neu,sn.det,sn.sem,sn.detPct*100]],'nps_impacto');
+  const byDim=(id,field,limit)=>{
+    const keys=sortedEntries(countBy(M.nps,r=>r[field])).slice(0,limit||20).map(x=>x[0]);
+    const s=keys.map(k=>[npsStats(imp.filter(r=>r[field]===k)),npsStats(non.filter(r=>r[field]===k))]);
+    draw(id,cfgBarLine(keys,[{label:'Impactados',data:s.map(x=>isNaN(x[0].detPct)?null:x[0].detPct*100),color:P.alerta,isPct:true},{label:'Não impactados',data:s.map(x=>isNaN(x[1].detPct)?null:x[1].detPct*100),color:P.verde,isPct:true}],null,{yTitle:'% detratores',yPct:true,footer:i=>`n impactados=${s[i][0].comNota} · n não impactados=${s[i][1].comNota}`}));
+    setTable(id,[field,'n impactados','% det. impactados','n não impactados','% det. não impactados'],keys.map((k,i)=>[k,s[i][0].comNota,isNaN(s[i][0].detPct)?'':s[i][0].detPct*100,s[i][1].comNota,isNaN(s[i][1].detPct)?'':s[i][1].detPct*100]),'nps_'+field);
+  };
+  byDim('n-seg','seg'); byDim('n-fid','fid'); byDim('n-grp','grupo',12);
+  const wc=M.nps.filter(r=>r.com), men=wc.filter(r=>r.kw.length), nmen=wc.filter(r=>!r.kw.length);
+  const sm=npsStats(men), snm=npsStats(nmen);
+  draw('n-kw',cfgBarLine(['Cita o problema','Não cita'],[{label:'% detratores',data:[sm.detPct*100,snm.detPct*100],colors:[P.alerta,P.verde],isPct:true}],null,{yTitle:'% detratores',yPct:true,footer:i=>`n=${[sm,snm][i].comNota}`}));
+  setTable('n-kw',['Grupo','n com nota','Detratores','% detratores'],[['Cita',sm.comNota,sm.det,sm.detPct*100],['Não cita',snm.comNota,snm.det,snm.detPct*100]],'nps_mencao');
+  renderTerms(M);
+  const kwRes=KW.map(k=>k.re);
+  const hl=t=>{ let s=esc(t); const n=norm(t); // destaca palavras que casam
+      return s.split(/(\s+)/).map(w=>{const nw=norm(w);return nw&&KW.some(k=>k.re.test(nw))||/^(fila|espera|esperar|demora|demorou|balcao|vaga|aguardar)/.test(nw)?`<mark>${w}</mark>`:w;}).join(''); };
+  const list=men.slice().sort((a,b)=>(M.fcvSet.has(b.c)-M.fcvSet.has(a.c))||((b.cat==='Detrator')-(a.cat==='Detrator')));
+  const pc={Promotor:'pro',Neutro:'neu',Detrator:'det','Sem nota':'sem'};
+  $('#html-n-com').innerHTML=`<p class="note">${fmtInt(list.length)} comentários. Por tema: ${KW.map(k=>`${k.label} ${fmtInt(men.filter(r=>r.kw.includes(k.id)).length)}`).join(' · ')}</p><div class="scroll-y">${list.slice(0,150).map(r=>`<div class="comment"><div class="meta"><span class="pill ${pc[r.cat]}">${r.cat}</span>${M.fcvSet.has(r.c)?'<span class="pill imp">Impactado por FCV</span>':''} Contrato ${esc(r.c)} · ${esc(r.tipo)} · ${esc(r.grupo)} · ${fmtDate(r.date)} · temas: ${r.kw.map(k=>KW.find(x=>x.id===k).label).join(', ')}</div>${hl(r.com)}</div>`).join('')}</div>`;
+  setTable('n-com',['Contrato','NPS','Impactado','Tipo','Grupo','Data','Temas','Comentário'],list.map(r=>[r.c,r.cat,M.fcvSet.has(r.c)?'Sim':'Não',r.tipo,r.grupo,fmtDate(r.date),r.kw.join(', '),r.com]),'comentarios_problema');
+}
+function renderTerms(M){
+  const f=STATE.ui.termFilter;
+  const src=M.nps.filter(r=>r.com&&(f==='todos'||(f==='detneu'&&(r.cat==='Detrator'||r.cat==='Neutro'))||(f==='imp'&&M.fcvSet.has(r.c))));
+  const c=new Map(); src.forEach(r=>{ new Set(norm(r.com).split(' ').filter(w=>w.length>=4&&!STOP.has(w))).forEach(w=>c.set(w,(c.get(w)||0)+1)); });
+  const top=sortedEntries(c).slice(0,25), max=top[0]?.[1]||1;
+  $('#html-n-terms').innerHTML=`<div class="toolbar"><label class="note" for="termF">Comentários de</label><select id="termF" class="btn-ghost"><option value="todos">Todos</option><option value="detneu">Detratores e neutros</option><option value="imp">Impactados por FCV</option></select><span class="note">${fmtInt(src.length)} comentários · contagem = nº de comentários que usam o termo</span></div>
+   <div class="scroll-y">${top.map(([w,k])=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px"><span style="width:110px;text-align:right">${esc(w)}</span><span style="height:12px;border-radius:4px;background:${KW.some(x=>x.re.test(w))?'var(--alerta)':'var(--verde-2)'};width:${k/max*60}%"></span><span class="note" style="margin:0">${k}</span></div>`).join('')||'<p class="note">Sem comentários no recorte.</p>'}</div>`;
+  $('#termF').value=f; $('#termF').onchange=e=>{STATE.ui.termFilter=e.target.value;renderTerms(M);};
+  setTable('n-terms',['Termo','Comentários'],top.map(([w,k])=>[w,k]),'termos');
+}
+
+/* =====================================================================
+   9. MOTOR DE INSIGHTS (regras; tudo calculado a partir dos dados filtrados)
+   ===================================================================== */
+function computeInsights(M){
+  const out=[], n=M.fcv.length, F=STATE.F;
+  const add=o=>out.push(o);
+  if(!n){ add({kind:'fato',title:'Nenhuma reserva afetada no recorte',ev:'Os filtros atuais não retornam reservas afetadas por FCV.',so:'Amplie o período ou remova filtros antes de concluir.',n:0}); return out; }
+  const avg=safeDiv(n,M.denom(M.ret));
+  // 1. Concentração
+  const byG=sortedEntries(countBy(M.fcv,r=>r.gRes)); let acc=0,k=0; for(const [,c] of byG){acc+=c;k++;if(acc/n>=.8)break;}
+  const retG=new Map(); M.ret.forEach(r=>{if(!retG.has(r.gRes))retG.set(r.gRes,[]);retG.get(r.gRes).push(r);});
+  const fG=countBy(M.fcv,r=>r.gRes);
+  const gr=[...retG.entries()].filter(([g,l])=>l.length>=30&&(fG.get(g)||0)>=5).map(([g,l])=>({g,r:safeDiv(fG.get(g),M.denom(l)),f:fG.get(g),n:l.length})).sort((a,b)=>b.r-a.r);
+  const grTxt=gr.length?` Em taxa (grupos com 30+ retiradas e 5+ afetadas), lidera ${gr[0].g}: ${fmtPct(gr[0].r,2)}, ${fmtNum(gr[0].r/avg,1)}× a média de ${fmtPct(avg,2)}${gr[1]?`; depois ${gr[1].g} (${fmtPct(gr[1].r,2)})`:''}.`:'';
+  add({kind:'fato',title:`${k} de ${byG.length} grupos concentram 80% das FCV`,ev:`${byG.slice(0,k).map(([g,c])=>`${g} (${c})`).join(', ')} somam ${fmtPct(acc/n)} das ${fmtInt(n)} reservas afetadas.${grTxt}`,
+    so:k<=Math.max(2,byG.length*.35)?'Concentração alta: começar o plano por esses grupos cobre a maior parte do problema com pouco esforço.':'Problema espalhado entre grupos: ações de processo transversais tendem a render mais que foco em grupo.',n});
+  // 2. Picos
+  const fm=M.fcv.filter(r=>r.ret);
+  const peak=(keyF,retKeyF,labels,minN)=>{const f=countBy(fm,keyF),rl=new Map();M.ret.forEach(r=>{const kk=retKeyF(r);if(!rl.has(kk))rl.set(kk,[]);rl.get(kk).push(r);});
+    return [...rl.entries()].filter(([,l])=>l.length>=minN).map(([kk,l])=>({k:kk,lab:labels(kk),f:f.get(kk)||0,r:safeDiv(f.get(kk)||0,M.denom(l)),n:l.length})).sort((a,b)=>b.r-a.r);};
+  const pw=peak(r=>r.ret.T.wd,r=>r.T.wd,x=>WD[x],30), pb=peak(r=>r.ret.T.band,r=>r.T.band,bandLabel,30);
+  const fmo=countBy(M.fcv,r=>evT(r).mk), rmo=new Map(); M.ret.forEach(r=>{if(!rmo.has(r.T.mk))rmo.set(r.T.mk,[]);rmo.get(r.T.mk).push(r);});
+  const pm=[...rmo.entries()].filter(([,l])=>l.length>=30).map(([m,l])=>({lab:monthLabel(m),f:fmo.get(m)||0,r:safeDiv(fmo.get(m)||0,M.denom(l))})).sort((a,b)=>b.r-a.r);
+  if(pw.length&&pb.length) add({kind:'fato',title:`Pico: ${pw[0].lab}, ${pb[0].lab}${pm.length?`, ${pm[0].lab}`:''}`,
+    ev:`Dia: ${pw[0].lab} ${fmtPct(pw[0].r,2)} (menor: ${pw.at(-1).lab} ${fmtPct(pw.at(-1).r,2)}). Faixa: ${pb[0].lab} ${fmtPct(pb[0].r,2)} (${pb[0].f} afetadas em ${fmtInt(pb[0].n)} retiradas). ${pm.length?`Mês: ${pm[0].lab} ${fmtPct(pm[0].r,2)}.`:''} Baseado em ${fmtInt(fm.length)} reservas com horário de retirada.`,
+    so:'Escalas de higienização e de gerenciamento de vaga devem reforçar o turno e o dia de pico antes de qualquer investimento em frota.',n:Math.min(pw[0].f,pb[0].f)});
+  // 3. Jornada Fast × Balcão (pelo contrato, sem estimativa)
+  if(!F.tipo.length){
+    const cnaR=M.ret.filter(r=>r.cna&&M.cOk(causeOfErr(r.cna.errN))), cnaF=cnaR.filter(r=>M.fcvSet.has(r.c)).length;
+    const nf=M.fcv.filter(r=>r.tipo==='Fast').length, nb=M.fcv.filter(r=>r.tipo==='Balcão').length;
+    const smp=M.ret.filter(r=>r.nps);
+    const rj=j=>{const l=smp.filter(r=>r.jornada===j);return {n:l.length,f:l.filter(r=>M.fcvSet.has(r.c)).length};};
+    const fc=rj('Fast concluído no app'), bd=rj('Balcão sem tentativa Fast registrada');
+    if(cnaR.length) add({kind:'fato',title:`${fmtPct(cnaF/cnaR.length)} das jornadas Fast que falharam foram FCV`,
+      ev:`Pelo contrato: ${cnaF} das ${fmtInt(cnaR.length)} retiradas listadas em não aproveitados são reservas afetadas por FCV. Das ${fmtInt(n)} afetadas, ${nf} terminaram no app e ${nb} no balcão. Na amostra NPS (tipo conhecido para todos): FCV em ${fc.f} de ${fc.n} Fast concluídos no app e em ${bd.f} de ${bd.n} aberturas de balcão sem tentativa Fast registrada.`,
+      so:'A FCV é uma das maiores causas de quebra da retirada digital: cada FCV evitada devolve um cliente ao Fast e tira uma pessoa da fila do balcão.',n:cnaR.length});
+    const bal=M.fcv.filter(r=>r.tipo==='Balcão'), balCna=bal.filter(r=>r.cna).length;
+    const cn=M.nps.filter(r=>r.cnaRec), cnB=cn.filter(r=>r.tipo==='Balcão').length;
+    if(bal.length) add({kind:'hip',title:'FCV "Balcão" são jornadas Fast que migraram ao balcão',ev:`${balCna} de ${bal.length} FCV Balcão (${fmtPct(safeDiv(balCna,bal.length))}) constam em contratos_nao_aproveitados. Dos contratos não aproveitados que responderam o NPS, ${cnB} de ${cn.length} (${fmtPct(safeDiv(cnB,cn.length))}) estão registrados como Balcão.`,
+      so:'O "tipo de abertura" registra onde o contrato terminou. Toda FCV começa no Fast; ler "Balcão" como canal de origem subestima o problema da retirada digital. Validar com o time de produto.',n:bal.length});
+  }
+  // 4. Causa
+  const sp=causeSplit(M.fcv), dom=dominantCause(M.fcv);
+  const withReg=n-sp.fact.semregistro;
+  add({kind:'fato',title:dom?`Causa dominante: ${causeLabel(dom.id)}`:'Sem causa de FCV de fato registrada',ev:`Com registro de erro: ${fmtInt(withReg)} de ${fmtInt(n)} (${fmtPct(withReg/n)}). Classes: FCV de fato ${sp.fact.fato}, não é FCV ${sp.fact.naofcv}, indeterminado ${sp.fact.indet}, sem registro ${sp.fact.semregistro}.${dom?` Entre as FCV de fato, ${causeLabel(dom.id)} responde por ${fmtPct(dom.share)} (${dom.n} de ${dom.tot}).`:''}`,
+    so:dom?`${causeLabel(dom.id)} deve ser a primeira frente do plano, com dono e meta. Falhas técnicas (${sp.fact.naofcv}) vão para TI/produto, não para o pátio.`:'Sem causa operacional registrada não há como priorizar; revisar o mapeamento Erro → Causa.',n:dom?dom.tot:withReg});
+  if(sp.fact.indet+sp.fact.semregistro>n*.4) add({kind:'hip',p:2,title:'A causa é desconhecida para boa parte das FCV',ev:`${fmtPct((sp.fact.indet+sp.fact.semregistro)/n)} das reservas afetadas estão sem registro de erro ou com erro indeterminado.`,
+    so:'A causa dominante vale para a parcela com registro. Antes de decidir, padronizar o apontamento do motivo no momento da FCV (ex.: campo obrigatório no app do operador).',n});
+  // 5. Déficit
+  const sd=M.sd, rd=safeDiv(sd.fD,M.denom(sd.retDef)), ro=safeDiv(sd.fO,M.denom(sd.retOk)), lift=safeDiv(rd,ro);
+  const td=topDeficits(sd,3);
+  const capShare=safeDiv(M.fcv.filter(r=>causeOfFcv(r)==='indisponibilidade').length,sp.fact.fato);
+  add({kind:'hip',title:lift>=1.3?'Há sinal de restrição de capacidade':'O gargalo parece mais de processo que de capacidade',ev:`Taxa de FCV em horas com déficit ${fmtPct(rd,2)} (n=${sd.fD}) × sem déficit ${fmtPct(ro,2)} (n=${sd.fO}); razão ${isNaN(lift)?'–':fmtNum(lift,2)+'×'}. Critério: ${STATE.ui.deficitMode==='acumulado'?'saldo acumulado no dia':'saldo na hora'}. ${td.length?`Piores saldos: ${td.map(t=>`${t.g} ${pad(t.h)}h (${t.d} retiradas × ${t.s} disponibilizados)`).join('; ')}.`:''} ${isNaN(capShare)?'':`Indisponibilidade de grupo = ${fmtPct(capShare)} das FCV de fato.`}`,
+    so:lift>=1.3?'Parte da FCV acompanha o déficit de fluxo: rever giro, transferências entre agências e overbooking por grupo nos picos.':'A FCV acontece mesmo com carros chegando: priorizar higienização, conferência e atribuição de vaga (processo) antes de ampliar frota.',n:sd.fD+sd.fO});
+  // 6. Upgrade / downgrade
+  const gx=M.fcv.filter(r=>r.gRes==='GX'), gxIn=gx.filter(r=>r.move!=='fora');
+  const dnG=HIER.map(g=>{const l=M.fcv.filter(r=>r.gRes===g&&r.move!=='fora');return {g,t:l.length,d:l.filter(r=>r.move==='down').length};}).filter(x=>x.t>=5&&x.d/x.t>=.3).sort((a,b)=>b.d/b.t-a.d/a.t);
+  if(gx.length||dnG.length) add({kind:'fato',title:dnG.length?`Downgrade frequente em ${dnG.map(x=>x.g).join(', ')}`:'GX não tem upgrade possível',ev:`${gx.length?`GX (topo) = ${fmtPct(gx.length/n)} das FCV; ${fmtPct(safeDiv(gxIn.filter(r=>r.move==='down').length,gxIn.length))} delas viraram downgrade (n=${gxIn.length}). `:''}${dnG.map(x=>`${x.g}: ${fmtPct(x.d/x.t)} de downgrade (n=${x.t})`).join('; ')}`,
+    so:'Nesses grupos a compensação por upgrade é inviável ou não acontece; a FCV vira perda direta de experiência. Reserva técnica de carros desses grupos tem retorno maior.',n:Math.max(gxIn.length,dnG[0]?.t||0)});
+  // 7. NPS
+  const si=npsStats(M.nps.filter(r=>M.fcvSet.has(r.c))), sn=npsStats(M.nps.filter(r=>!r.isFcv));
+  const sj=npsStats(M.nps.filter(r=>r.cnaRec||M.fcvSet.has(r.c))), sd2=npsStats(M.nps.filter(r=>!r.cnaRec&&!r.isFcv));
+  const big=sj.comNota>=30;
+  add({kind:big?'fato':'hip',title:`Detratores: ${fmtPct(sj.detPct)} quando a jornada Fast falha × ${fmtPct(sd2.detPct)} nos demais`,ev:`Jornada falhou (FCV ou não aproveitado, pelo contrato): n=${sj.comNota}; demais: n=${sd2.comNota}; diferença ${fmtPP(sj.detPct-sd2.detPct)}. Só reservas afetadas por FCV: ${fmtPct(si.detPct)} (n=${si.comNota}) × ${fmtPct(sn.detPct)} nos não afetados.`,
+    so:sj.detPct>sd2.detPct?'Falha na retirada digital piora o NPS de forma mensurável; o custo inclui reputação, não só operação. O recorte só de FCV ainda tem amostra pequena.':'Não há piora de NPS visível; o impacto pode estar na eficiência e não na nota.',n:sj.comNota});
+  // 8. Comentários
+  const wc=M.nps.filter(r=>r.com), men=wc.filter(r=>r.kw.length), sm=npsStats(men), snm=npsStats(wc.filter(r=>!r.kw.length));
+  if(wc.length) add({kind:'fato',title:`${fmtPct(men.length/wc.length)} dos comentários citam falta de carro, fila, espera ou balcão`,ev:`${men.length} de ${wc.length} comentários. Detratores entre os que citam: ${fmtPct(sm.detPct)} (n=${sm.comNota}) × entre os que não citam: ${fmtPct(snm.detPct)} (n=${snm.comNota}).`,
+    so:sm.detPct>snm.detPct?'Quem fala de espera ou falta de carro é mais detrator: o tema pesa na nota e serve de indicador de acompanhamento.':'O tema aparece, mas sem efeito claro na nota.',n:men.length});
+  // 9. Qualidade
+  const cov=f=>safeDiv(M.fcv.filter(f).length,n);
+  const fora=M.fcv.filter(r=>r.move==='fora').length;
+  add({kind:'fato',title:'Limites dos dados para esta conclusão',ev:`Cruzamento das afetadas: retirada ${fmtPct(cov(r=>r.ret))}, devolução ${fmtPct(cov(r=>r.dev))}, NPS ${fmtPct(cov(r=>r.nps))}, não aproveitados ${fmtPct(cov(r=>r.cna))}. Fora da hierarquia: ${fmtPct(fora/n)}. Tipo de abertura conhecido pelo contrato em ${fmtPct(safeDiv(M.ret.filter(r=>r.jornada!=='Tipo desconhecido').length,M.ret.length))} das retiradas; taxa por tipo só na amostra NPS (P3).`,
+    so:'Conclusões por hora valem para a parcela cruzada; NPS e causa têm cobertura parcial. Explicitar esses limites na recomendação à diretoria.',n});
+  // Limite de 10 insights: remove primeiro os de menor prioridade (p baixo), mantendo a ordem
+  while(out.length>10){ let iMin=-1,pMin=Infinity; out.forEach((o,i)=>{const pp=o.p??9; if(pp<pMin){pMin=pp;iMin=i;}}); out.splice(iMin,1); }
+  return out;
+}
+function renderInsights(M){
+  const ins=computeInsights(M); STATE.lastInsights=ins;
+  const cardI=i=>{const c=conf(i.n);return `<article class="ins ${i.kind==='hip'?'hip':''} ${c.k==='baixa'?'low':''}"><h4>${esc(i.title)}</h4><p><span class="lbl">Evidência: </span>${esc(i.ev)}</p><p><span class="lbl">Então o quê: </span>${esc(i.so)}</p><span class="badge ${c.k}">${esc(c.t)}</span>${c.k==='baixa'?'<div class="warnline">Amostra pequena: trate como indicativo.</div>':''}</article>`;};
+  $('#main').innerHTML=`<h2 class="sec">Insights gerados pelos dados</h2>
+  <p class="lead">Recalculados a cada filtro ou mudança de mapeamento. Fatos são cálculos diretos; hipóteses são inferências que pedem validação em campo. ${denomBadge(M)}</p>
+  <div class="toolbar"><button class="btn btn-verde" type="button" id="copyIns">Copiar insights</button><span class="note">${ins.length} insights · recorte: ${esc($('#activeFilters').textContent)}</span></div>
+  <div class="ins-cols"><div class="ins-col"><h3>Fatos calculados</h3>${ins.filter(i=>i.kind==='fato').map(cardI).join('')}</div>
+  <div class="ins-col"><h3>Hipóteses a validar</h3>${ins.filter(i=>i.kind==='hip').map(cardI).join('')}</div></div>`;
+  $('#copyIns').onclick=()=>copyInsights(ins);
+}
+function copyInsights(ins){
+  const txt=`Análise FCV · Retirada Digital\nRecorte: ${$('#activeFilters').textContent}\n\n`+['fato','hip'].map(k=>`${k==='fato'?'FATOS CALCULADOS':'HIPÓTESES A VALIDAR'}\n`+ins.filter(i=>i.kind===k).map((i,j)=>`${j+1}. ${i.title}\n   Evidência: ${i.ev}\n   Então o quê: ${i.so}\n   ${conf(i.n).t}`).join('\n')).join('\n\n');
+  const done=()=>toast('Insights copiados');
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done)); else fallbackCopy(txt,done);
+}
+function fallbackCopy(t,cb){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');cb();}catch(e){alert('Não foi possível copiar automaticamente.');} ta.remove(); }
+
+/* ---------- 8.8 Qualidade dos dados ---------- */
+function renderQualidade(M){
+  const q=STATE.quality, D=STATE.data, raw=STATE.raw;
+  const names={fcv:'reservas_afetadas_fcv',cna:'contratos_nao_aproveitados',ret:'base_retirada',dev:'base_devolucao',nps:'base_nps'};
+  const n=D.fcv.length, cov=f=>[D.fcv.filter(f).length,safeDiv(D.fcv.filter(f).length,n)*100];
+  let h=`<h2 class="sec">Qualidade dos dados</h2><p class="lead">Visão da planilha inteira (não depende dos filtros), exceto onde indicado.</p><div class="grid">`;
+  h+=card('q-tabs','Linhas, período, nulos e duplicados por aba','Duplicados = contratos repetidos. Datas inválidas = não reconhecidas no parse.',{html:true,wide:true});
+  h+=card('q-cov','Cobertura do cruzamento das reservas afetadas','% dos contratos de FCV encontrados em cada base.',{html:true});
+  h+=card('q-outh','Grupos fora da hierarquia','Excluídos do cálculo de upgrade/downgrade.',{html:true});
+  h+=card('q-map','Mapeamento de colunas usado','Correspondência aproximada entre o esperado e o encontrado.',{html:true,wide:true});
+  h+=card('q-enrich','O que o código do contrato preencheu','Informação ausente numa aba e recuperada pelo mesmo contrato em outra.',{html:true,wide:true});
+  h+=card('q-prem','Premissas adotadas','Referenciadas nos gráficos como P1, P2… Nada no dashboard é estimado; onde não há fonte, o dado fica como desconhecido.',{html:true,wide:true});
+  h+=card('q-err','Erros sem mapeamento ("Outros")','Classifique na aba Causa.',{html:true});
+  h+=card('q-alert','Alertas que limitam as conclusões','',{html:true});
+  h+=`</div>`;
+  $('#main').innerHTML=h;
+  const tr=Object.keys(names).map(id=>{const t=q.tabs[id];const nul=Object.entries(t.nulls).filter(([,v])=>v).map(([f,v])=>`${raw[id].cmap[f]?.header||f}: ${v}`).join('; ')||'nenhum';return [names[id],t.sheet,t.rows,`${fmtDate(t.min)} a ${fmtDate(t.max)}`,nul,t.dups,t.invalidDate,new Set(D[id].map(r=>r.c)).size];});
+  const th=['Aba esperada','Aba encontrada','Linhas','Período','Nulos por coluna','Duplicados','Datas inválidas','Contratos únicos'];
+  $('#html-q-tabs').innerHTML=tableHTML(th,tr); setTable('q-tabs',th,tr,'qualidade_abas');
+  const cv=[['base_retirada',...cov(r=>r.ret)],['base_devolucao',...cov(r=>r.dev)],['base_nps',...cov(r=>r.nps)],['contratos_nao_aproveitados',...cov(r=>r.cna)]];
+  const byTipo=['Fast','Balcão'].map(t=>{const l=D.fcv.filter(r=>r.tipo===t);return [`não aproveitados (FCV ${t})`,l.filter(r=>r.cna).length,safeDiv(l.filter(r=>r.cna).length,l.length)*100];});
+  const ch=['Base','Contratos FCV encontrados','% de '+n];
+  $('#html-q-cov').innerHTML=tableHTML(ch,[...cv,...byTipo]); setTable('q-cov',ch,[...cv,...byTipo],'cobertura');
+  const oh=Object.entries(q.outH).flatMap(([id,l])=>l.map(([g,c])=>[names[id],g,c]));
+  $('#html-q-outh').innerHTML=`<div class="scroll-y">${tableHTML(['Aba','Grupo','Ocorrências'],oh)}</div>`; setTable('q-outh',['Aba','Grupo','Ocorrências'],oh,'fora_hierarquia');
+  const mp=Object.keys(names).flatMap(id=>Object.entries(SPEC[id].cols).map(([f,c])=>{const m=raw[id].cmap[f];return [names[id],c.label,m?m.header:'(não encontrada)',m?(m.score>=1000?'Exata':'Aproximada'):(c.req?'Obrigatória ausente':'Opcional ausente')];}));
+  $('#html-q-map').innerHTML=tableHTML(['Aba','Campo esperado','Coluna encontrada','Correspondência'],mp); setTable('q-map',['Aba','Campo esperado','Coluna encontrada','Correspondência'],mp,'mapeamento_colunas');
+  const ue=sortedEntries(countBy(D.cna.filter(r=>causeOfErr(r.errN)==='outros'),r=>r.err)).map(([e,c])=>[e,c,D.cna.filter(r=>r.err===e&&r.isFcv).length]);
+  $('#html-q-err').innerHTML=`<div class="scroll-y">${tableHTML(['Erro','Ocorrências','Em FCV'],ue)}</div>`; setTable('q-err',['Erro','Ocorrências','Em FCV'],ue,'erros_sem_mapeamento');
+  const E=q.enrich;
+  const known=D.ret.filter(r=>r.jornada!=='Tipo desconhecido').length;
+  const er=[
+    ['Tipo de abertura das retiradas','base_retirada não tem',`${fmtInt(known)} de ${fmtInt(E.retTot)} (${fmtPct(known/E.retTot)})`,E.retSrc.map(([k,v])=>`${k}: ${v}`).join('; ')],
+    ['Jornada (Fast concluído, Fast que migrou ao balcão, balcão)','nenhuma aba tem',E.retJornada.map(([k,v])=>`${k}: ${v}`).join('; '),'combinação das fontes acima (P2, P4)'],
+    ['Horário real das reservas afetadas','só data de criação da reserva',`${fmtInt(E.fcvHora)} de ${fmtInt(D.fcv.length)}`,'base_retirada'],
+    ['Horário dos não aproveitados','sem hora',`${fmtInt(E.cnaHora)} de ${fmtInt(E.cnaTot)}`,'base_retirada'],
+    ['NPS dos não aproveitados','sem NPS',`${fmtInt(E.cnaNps)} de ${fmtInt(E.cnaTot)}`,'base_nps'],
+    ['NPS das reservas afetadas','sem NPS',`${fmtInt(E.fcvNps)} de ${fmtInt(D.fcv.length)}`,'base_nps'],
+    ['Grupo da FCV confere com a retirada','',`${fmtInt(E.fcvGrpOk)} de ${fmtInt(E.fcvHora)}`,'checagem de consistência'],
+    ['Grupo dos não aproveitados confere com a retirada','',`${fmtInt(E.cnaGrpOk)} de ${fmtInt(E.cnaHora)}`,'checagem de consistência'],
+    ['Data dos não aproveitados difere da retirada','',`${fmtInt(E.cnaDiaDif)} de ${fmtInt(E.cnaHora)}`,'hora e dia passam a vir da retirada (P8)'],
+    ['Conflito de tipo FCV × NPS','',E.tipoConf.length?E.tipoConf.map(c=>`contrato ${c[0]}: ${c[1]} na FCV, ${c[2]} no NPS`).join('; '):'nenhum','prevalece reservas_afetadas_fcv (P4)']];
+  $('#html-q-enrich').innerHTML=tableHTML(['Informação','Antes','Depois do cruzamento','Fonte / regra'],er); setTable('q-enrich',['Informação','Antes','Depois do cruzamento','Fonte / regra'],er,'enriquecimento_contrato');
+  const prem=[
+    ['P1','O código do contrato é a chave e é o mesmo em todas as abas. Em contrato duplicado vale a primeira ocorrência.',`Duplicados nesta planilha: ${Object.values(q.tabs).reduce((a,t)=>a+t.dups,0)}.`],
+    ['P2','contratos_nao_aproveitados lista jornadas Fast que falharam. Se o contrato existe na retirada, ele foi aberto no balcão.',`Verificado: ${E.cnaNpsBalcao} de ${E.cnaNps} desses contratos com NPS estão como Balcão.`],
+    ['P3','Taxas de FCV por tipo de abertura são calculadas só entre retiradas cujo contrato respondeu o NPS, única base com tipo para contratos não afetados. A taxa é exata na amostra; extrapolar para o total supõe que ela representa as retiradas.',`Amostra: ${fmtInt(D.ret.filter(r=>r.nps).length)} retiradas.`],
+    ['P4','Prioridade da fonte do tipo: reservas_afetadas_fcv, depois base_nps, depois contratos_nao_aproveitados. Sem fonte, o tipo fica "Desconhecido" e não é imputado.',`Conflitos: ${E.tipoConf.length}.`],
+    ['P5',`Um carro devolvido fica disponível após o tempo de preparo (padrão 60 min, editável). Oferta e demanda são por grupo, sem ID de carro e sem estoque inicial.`,''],
+    ['P6','Demanda = retiradas pelo grupo reservado; nas "Sem reserva" vale o grupo utilizado.',`${fmtInt(q.semReserva)} retiradas sem reserva.`],
+    ['P7','O mapeamento Erro → Causa e a classe de cada causa são hipóteses editáveis na aba Causa.',''],
+    ['P8','Dia e hora da FCV e dos não aproveitados vêm da retirada do mesmo contrato (seletor "Data da FCV" permite usar a criação da reserva).',''],
+    ['P9','Datas tratadas como horário local, sem conversão de fuso.',''],
+    ['P10','Filtros de grupo e tipo valem para numerador e denominador. Grupo = grupo reservado; no NPS, tipo e grupo vêm da retirada do mesmo contrato (sem retirada, do próprio NPS). Causa filtra só o numerador, pois retiradas sem falha não têm causa. Oferta × demanda usa todas as retiradas como fluxo físico.','']];
+  $('#html-q-prem').innerHTML=tableHTML(['Código','Premissa','Evidência nos dados'],prem); setTable('q-prem',['Código','Premissa','Evidência nos dados'],prem,'premissas');
+  const lagD=D.fcv.filter(r=>r.ret).map(r=>(r.ret.date-r.created)/86400000).sort((a,b)=>a-b);
+  const med=lagD.length?lagD[Math.floor(lagD.length/2)]:NaN;
+  const retMax=q.tabs.ret.max, after=retMax?D.fcv.filter(r=>r.created>retMax).length:0;
+  const al=[
+    `Tipo de abertura conhecido pelo contrato em ${fmtPct(known/E.retTot)} das retiradas; as demais não aparecem em nenhuma base com tipo. Taxas por tipo só na amostra NPS (P3), sem estimativa.`,
+    `Data da FCV é de criação da reserva; mediana de ${fmtNum(med,1)} dias entre criação e retirada. Por isso, dia/hora usam o horário da retirada (${fmtPct(safeDiv(lagD.length,n))} das afetadas cruzadas).`,
+    `${fmtInt(q.semReserva)} retiradas "Sem reserva" (${fmtPct(safeDiv(q.semReserva,D.ret.length))}): entram no denominador total, saem no denominador "com reserva".`,
+    `Sem ID do carro: oferta × demanda é por grupo e mede fluxo (devolução + preparo), sem estoque inicial.`,
+    `Somente ${fmtInt(D.fcv.filter(r=>r.nps).length)} reservas afetadas têm NPS: comparação de detratores tem amostra pequena.`,
+    `${fmtInt(D.fcv.filter(r=>!r.cna).length)} reservas afetadas (${fmtPct(safeDiv(D.fcv.filter(r=>!r.cna).length,n))}) não constam em contratos_nao_aproveitados: ficam "Sem registro de erro".`,
+    after?`${after} reservas afetadas foram criadas depois da última retirada da base (${fmtDate(retMax)}).`:null,
+    `contratos_nao_aproveitados não tem hora própria: usa a hora da retirada do mesmo contrato (${fmtInt(E.cnaHora)} de ${fmtInt(E.cnaTot)}).`
+  ].filter(Boolean);
+  $('#html-q-alert').innerHTML=`<ul style="margin:0;padding-left:18px">${al.map(a=>`<li style="margin:5px 0;font-size:13.5px">${esc(a)}</li>`).join('')}</ul>`;
+  setTable('q-alert',['Alerta'],al.map(a=>[a]),'alertas');
+}
+
+/* =====================================================================
+   10. ORQUESTRAÇÃO: filtros, abas, carregamento
+   ===================================================================== */
+const RENDER={geral:renderGeral,onde:renderOnde,causa:M=>renderCausa(M,false),oferta:renderOferta,upgrade:renderUpgrade,cliente:renderCliente,insights:renderInsights,qualidade:renderQualidade};
+function refresh(){
+  destroyCharts();
+  for(const k in TABLES) delete TABLES[k];
+  const M=computeModel(); STATE.M=M;
+  updateActiveFilters(M); updateFilterWarn(M);
+  try{ RENDER[STATE.tab](M); }
+  catch(err){ console.error(err); $('#main').innerHTML=`<div class="msg err">Erro ao montar esta aba: ${esc(err.message)}. Os demais painéis seguem disponíveis.</div>`; }
+}
+function updateActiveFilters(M){
+  const F=STATE.F;
+  $('#activeFilters').innerHTML=`Recorte: <b>${fmtDate(F.from)} a ${fmtDate(F.to)}</b> · grupo <b>${F.group.length?esc(F.group.join(', ')):'todos'}</b> · tipo <b>${F.tipo.length?esc(F.tipo.join(', ')):'todos'}</b> · causa <b>${F.cause.length?esc(F.cause.map(causeLabel).join(', ')):'todas'}</b> · <b>${fmtInt(M.fcv.length)}</b> reservas afetadas · <b>${fmtInt(M.ret.length)}</b> retiradas · denominador: <b>${esc(M.denomLabel)}</b> · preparo <b>${STATE.lag} min</b>`;
+}
+function updateFilterWarn(M){
+  const F=STATE.F, w=[];
+  if(M.tipoBiased) w.push(`Filtro de tipo aplicado ao numerador e ao denominador. O tipo só é conhecido pelo contrato em ${fmtPct(M.tipoCov)} das retiradas do recorte; as demais ("Desconhecido") saem do denominador. Como toda reserva afetada tem tipo conhecido, a taxa fica acima da real. Para a taxa por tipo sem esse viés, use o card "Taxa de FCV por jornada, na amostra NPS" (aba Onde).`);
+  if(F.cause.length) w.push('Filtro de causa aplicado ao numerador. O denominador não muda porque retiradas sem falha não têm causa: a taxa lida é "reservas afetadas por essa causa a cada retirada".');
+  if(F.dateRef==='criacao') w.push('Data da FCV = criação da reserva: o numerador é contado pela data de criação e o denominador pela data de retirada. Para taxas por período, prefira "Data da retirada".');
+  $('#filterWarn').innerHTML=w.map(t=>`<div class="msg warn" role="status">${esc(t)}</div>`).join('');
+}
+function buildTabs(){
+  const nav=$('#tabs');
+  nav.innerHTML=TABS.map(([id,l])=>`<button role="tab" type="button" id="tab-${id}" aria-selected="${id===STATE.tab}" aria-controls="main" tabindex="${id===STATE.tab?0:-1}" data-tab="${id}">${l}</button>`).join('');
+  nav.onclick=e=>{const b=e.target.closest('[data-tab]');if(b)selectTab(b.dataset.tab);};
+  nav.onkeydown=e=>{ if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key)) return; const ids=TABS.map(t=>t[0]); let i=ids.indexOf(STATE.tab);
+    i=e.key==='ArrowRight'?(i+1)%ids.length:e.key==='ArrowLeft'?(i-1+ids.length)%ids.length:e.key==='Home'?0:ids.length-1; selectTab(ids[i]); $('#tab-'+ids[i]).focus(); e.preventDefault(); };
+}
+function selectTab(id){ STATE.tab=id; document.querySelectorAll('#tabs [role=tab]').forEach(b=>{const on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;}); $('#main').setAttribute('aria-labelledby','tab-'+id); refresh(); }
+/* Filtro de múltipla escolha acessível. Nenhuma opção marcada = todas. */
+function multiSelect(el,{labelId,allLabel,options,value,onChange}){
+  let sel=new Set(value||[]), timer=null;
+  el.innerHTML=`<button type="button" class="ms-btn" aria-haspopup="true" aria-expanded="false" aria-labelledby="${labelId} ${el.id}-txt"><span class="ms-txt" id="${el.id}-txt"></span><span aria-hidden="true">▾</span></button>
+    <div class="ms-panel" hidden role="group" aria-labelledby="${labelId}">
+      <div class="ms-actions"><button type="button" class="btn-ghost" data-msa="all">Todos</button><button type="button" class="btn-ghost" data-msa="close">Fechar</button></div>
+      <div class="ms-list">${options.map(o=>`<label class="ms-opt"><input type="checkbox" value="${esc(o.value)}" ${sel.has(o.value)?'checked':''}><span>${esc(o.label)}</span>${o.count!=null?`<span class="cnt">${fmtInt(o.count)}</span>`:''}</label>`).join('')}</div>
+    </div>`;
+  const btn=el.querySelector('.ms-btn'), panel=el.querySelector('.ms-panel'), txt=el.querySelector('.ms-txt');
+  const labelOf=v=>(options.find(o=>o.value===v)||{}).short||v;
+  const paint=()=>{ const a=[...sel]; txt.textContent=!a.length?allLabel:a.length<=3?a.map(labelOf).join(', '):`${a.length} selecionados`; btn.classList.toggle('on',a.length>0); btn.title=a.length?a.map(labelOf).join(', '):allLabel; };
+  const emit=()=>{ paint(); clearTimeout(timer); timer=setTimeout(()=>onChange([...sel]),250); };
+  const open=o=>{ panel.hidden=!o; btn.setAttribute('aria-expanded',String(o)); if(o){ document.querySelectorAll('.ms-panel').forEach(p=>{if(p!==panel){p.hidden=true;p.previousElementSibling.setAttribute('aria-expanded','false');}}); const f=panel.querySelector('input'); f&&f.focus(); } };
+  btn.onclick=()=>open(panel.hidden);
+  panel.addEventListener('change',e=>{ const i=e.target; if(i.type!=='checkbox') return; i.checked?sel.add(i.value):sel.delete(i.value); emit(); });
+  panel.querySelector('[data-msa=all]').onclick=()=>{ sel.clear(); panel.querySelectorAll('input').forEach(i=>i.checked=false); emit(); };
+  panel.querySelector('[data-msa=close]').onclick=()=>{ open(false); btn.focus(); };
+  panel.addEventListener('keydown',e=>{ if(e.key==='Escape'){ open(false); btn.focus(); } });
+  document.addEventListener('click',e=>{ if(!el.contains(e.target)&&!panel.hidden) open(false); });
+  el._ms={set:v=>{ sel=new Set(v||[]); panel.querySelectorAll('input').forEach(i=>i.checked=sel.has(i.value)); paint(); }};
+  paint();
+}
+function initFilters(){
+  const D=STATE.data;
+  const ts=[...D.fcv.map(r=>r.created),...D.ret.map(r=>r.date),...D.fcv.filter(r=>r.ret).map(r=>r.ret.date)].filter(Boolean).map(d=>d.getTime());
+  const min=new Date(Math.min(...ts)), max=new Date(Math.max(...ts));
+  STATE.bounds={min:new Date(min.getFullYear(),min.getMonth(),min.getDate()),max:new Date(max.getFullYear(),max.getMonth(),max.getDate())};
+  const fG=countBy(D.fcv,r=>r.gRes);
+  const groups=[...new Set([...D.fcv.map(r=>r.gRes),...D.ret.map(r=>r.gRes)])].sort((a,b)=>(a===SEM_RESERVA)-(b===SEM_RESERVA)||(RANK[a]||99)-(RANK[b]||99)||a.localeCompare(b));
+  const fT=countBy(D.ret,r=>r.tipo);
+  STATE.msGroup={labelId:'lbl-fGroup',allLabel:'Todos',options:groups.map(g=>({value:g,label:`${g}${g in RANK||g===SEM_RESERVA?'':' (fora da hierarquia)'}`,short:g,count:fG.get(g)||0})),onChange:v=>{STATE.F.group=v;refresh();}};
+  STATE.msTipo={labelId:'lbl-fTipo',allLabel:'Todos',options:['Fast','Balcão','Checkin Express','Desconhecido'].map(t=>({value:t,label:t==='Desconhecido'?'Desconhecido (retiradas sem tipo no contrato)':t,short:t,count:fT.get(t)||0})),onChange:v=>{STATE.F.tipo=v;refresh();}};
+  STATE.msCause={labelId:'lbl-fCause',allLabel:'Todas',options:[...CAUSES,NO_REG].map(c=>({value:c.id,label:c.label,short:c.label.split(' (')[0]})),onChange:v=>{STATE.F.cause=v;refresh();}};
+  multiSelect($('#fGroup'),STATE.msGroup); multiSelect($('#fTipo'),STATE.msTipo); multiSelect($('#fCause'),STATE.msCause);
+  multiSelect($('#fWd'),{labelId:'lbl-fWd',allLabel:'Todos',options:WD.map((l,i)=>({value:String(i),label:l,short:l})),onChange:v=>{STATE.F.wd=v;refresh();}});
+  multiSelect($('#fHb'),{labelId:'lbl-fHb',allLabel:'Todas',options:BANDS.map((b,i)=>({value:String(i),label:bandLabel(i),short:bandLabel(i)})),onChange:v=>{STATE.F.hb=v;refresh();}});
+  applyCase();
+  const on=(id,fn)=>$(id).addEventListener('change',()=>{fn();refresh();});
+  on('#fFrom',()=>STATE.F.from=$('#fFrom').value?new Date($('#fFrom').value+'T00:00:00'):null);
+  on('#fTo',()=>STATE.F.to=$('#fTo').value?new Date($('#fTo').value+'T00:00:00'):null);
+  on('#fDenom',()=>STATE.F.denom=$('#fDenom').value);
+  on('#fDateRef',()=>STATE.F.dateRef=$('#fDateRef').value);
+  on('#fLag',()=>{const v=parseInt($('#fLag').value,10);STATE.lag=isNaN(v)||v<0?60:Math.min(v,720);$('#fLag').value=STATE.lag;});
+  $('#btnReset').onclick=()=>{resetFilters();refresh();};
+  $('#btnCase').onclick=()=>{applyCase();refresh();};
+  on('#fNoRet',()=>STATE.F.noRet=$('#fNoRet').value);
+}
+function resetFilters(){
+  const b=STATE.bounds;
+  STATE.F={from:b.min,to:b.max,group:[],tipo:[],cause:[],wd:[],hb:[],noRet:'incluir',denom:'total',dateRef:'retirada'}; STATE.lag=60; STATE.ui.odGroup=[];
+  $('#fFrom').value=isoDay(b.min); $('#fTo').value=isoDay(b.max); $('#fFrom').min=$('#fTo').min=isoDay(b.min); $('#fFrom').max=$('#fTo').max=isoDay(b.max);
+  ['#fGroup','#fTipo','#fCause','#fWd','#fHb'].forEach(id=>$(id)._ms&&$(id)._ms.set([])); $('#fNoRet').value='incluir'; $('#fDenom').value='total'; $('#fDateRef').value='retirada'; $('#fLag').value=60;
+}
+
+/* Carregamento do arquivo */
+function showLoadMsg(html,cls){ $('#loadMsg').innerHTML=`<div class="msg ${cls}" role="alert">${html}</div>`; }
+async function handleFile(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'||typeof Chart==='undefined'){ showLoadMsg('As bibliotecas SheetJS e Chart.js não carregaram. Verifique a conexão com cdnjs.cloudflare.com e recarregue a página.','err'); return; }
+  if(!/\.xlsx?$/i.test(file.name)){ showLoadMsg(`"${esc(file.name)}" não é uma planilha .xlsx.`,'err'); return; }
+  showLoadMsg('Lendo a planilha…','ok');
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:false});
+    const found=detectSheets(wb);
+    const missingTabs=Object.keys(SPEC).filter(id=>!found[id]);
+    if(missingTabs.length){ showLoadMsg(`Faltam abas: <b>${missingTabs.map(id=>SPEC[id].name).join(', ')}</b>.<br>Abas encontradas no arquivo: ${wb.SheetNames.map(esc).join(', ')}.`,'err'); return; }
+    const raw={}; const missingCols=[];
+    for(const id of Object.keys(SPEC)){ raw[id]=readSheet(wb,found[id],SPEC[id]); if(raw[id].missing.length) missingCols.push(`${SPEC[id].name}: ${raw[id].missing.join(', ')}`); }
+    if(missingCols.length){ showLoadMsg(`Colunas obrigatórias não reconhecidas:<br>${missingCols.map(esc).join('<br>')}`,'err'); return; }
+    const {data,quality}=cleanAll(raw);
+    if(!data.fcv.length||!data.ret.length){ showLoadMsg('A aba de reservas afetadas ou a de retiradas está vazia após a limpeza.','err'); return; }
+    STATE.raw=raw; STATE.data=data; STATE.quality=quality; STATE.fileName=file.name; STATE.retBy=null;
+    STATE.minCreated=new Date(Math.min(...data.fcv.map(r=>r.created).filter(Boolean).map(d=>d.getTime()))); STATE.incMk=tinfo(STATE.minCreated).mk;
+    initMapping(); initFilters(); buildTabs();
+    $('#welcome').classList.add('hidden'); $('#app').classList.remove('hidden');
+    $('#fileName').textContent=file.name; $('#fileName').classList.remove('hidden'); $('#btnLoad').textContent='Trocar planilha';
+    STATE.tab='geral'; selectTab('geral');
+    toast(`Planilha carregada: ${fmtInt(data.fcv.length)} reservas afetadas, ${fmtInt(data.ret.length)} retiradas`);
+  }catch(err){ console.error(err); $('#welcome').classList.remove('hidden'); $('#app').classList.add('hidden'); showLoadMsg(`Não foi possível ler o arquivo: ${esc(err.message)}`,'err'); }
+}
+/* =====================================================================
+   10. RECORTE DO CASE, EVIDÊNCIAS, JORNADAS E PILOTO
+   ===================================================================== */
+const CASE_CAUSES=['gerenciamento','higienizacao','indisponibilidade','naoclass','outros','semregistro'];
+const PILOT_G=['GX','GH','CE'];
+function caseGroups(){ const av=new Set(STATE.msGroup.options.map(o=>o.value)); return HIER.filter(g=>av.has(g)); }
+function applyCase(){ resetFilters(); const F=STATE.F; F.group=caseGroups(); F.cause=CASE_CAUSES.slice(); $('#fGroup')._ms.set(F.group); $('#fCause')._ms.set(F.cause); }
+function isCase(){ const F=STATE.F,b=STATE.bounds,eq=(a,c)=>a.length===c.length&&a.every(x=>c.includes(x));
+  return !!(F.from&&F.to)&&F.from.getTime()===b.min.getTime()&&F.to.getTime()===b.max.getTime()&&eq(F.group,caseGroups())&&eq(F.cause,CASE_CAUSES)&&!F.tipo.length&&!F.wd.length&&!F.hb.length&&F.denom==='total'&&F.dateRef==='retirada'&&F.noRet==='incluir'&&STATE.lag===60; }
+function caseBadge(){ return isCase()?'<span class="case-badge case-on">Recorte do case ativo</span>':'<span class="case-badge case-off">Recorte personalizado</span>'; }
+const _uaf=updateActiveFilters;
+updateActiveFilters=function(M){ _uaf(M); const F=STATE.F,x=[];
+  if(F.wd.length) x.push('dia <b>'+F.wd.map(i=>WD[+i]).join(', ')+'</b>');
+  if(F.hb.length) x.push('faixa <b>'+F.hb.map(i=>bandLabel(+i)).join(', ')+'</b>');
+  x.push('FCV sem retirada <b>'+(F.noRet==='excluir'?'excluídas':'incluídas')+'</b>');
+  const el=$('#activeFilters'); el.innerHTML=caseBadge()+el.innerHTML+' · '+x.join(' · '); };
+const _ufw=updateFilterWarn;
+updateFilterWarn=function(M){ _ufw(M); const F=STATE.F,w=[];
+  const nr=M.fcv.filter(r=>!r.ret).length;
+  if(nr&&F.dateRef==='retirada') w.push(`${nr} reserva(s) afetada(s) sem retirada registrada entram pela data de criação da reserva e pesam no último mês, sem retirada correspondente no denominador. Use "FCV sem retirada registrada: Excluir" para comparar meses só com FCV que têm retirada.`);
+  if(F.wd.length||F.hb.length) w.push('Filtros de dia e faixa horária usam o horário da retirada (FCV com retirada) ou da criação da reserva (FCV sem retirada).');
+  $('#filterWarn').insertAdjacentHTML('beforeend',w.map(t=>`<div class="msg warn" role="status">${esc(t)}</div>`).join('')); };
+function zTest(a,n1,b,n2){ if(!n1||!n2) return 0; const p=(a+b)/(n1+n2),se=Math.sqrt(p*(1-p)*(1/n1+1/n2)); return se>0?((a/n1)-(b/n2))/se:0; }
+function addTop(id,html){ const m=$('#main'); if(!m) return; const o=document.getElementById(id); if(o) o.remove();
+  const lead=m.querySelector('p.lead'), w=`<div id="${id}" class="blk">${html}</div>`; if(lead) lead.insertAdjacentHTML('afterend',w); else m.insertAdjacentHTML('afterbegin',w); }
+function physSlots(M){ // fluxo físico do pátio: todas as retiradas e devoluções do período, sem filtro de grupo
+  const D=STATE.data,lag=STATE.lag*60000,sl=new Map(),g=k=>{let o=sl.get(k);if(!o){o={d:0,s:0};sl.set(k,o);}return o;};
+  for(const r of D.ret) if(M.inP(r.T)) g(`${r.T.dk}|${r.gEff}|${r.T.h}`).d++;
+  for(const r of D.dev){ if(!r.date) continue; const T=tinfo(new Date(r.date.getTime()+lag)); if(M.inP(T)) g(`${T.dk}|${r.gUse}|${T.h}`).s++; }
+  const by=new Map(); for(const [k,o] of sl){ const [dk,gr,h]=k.split('|'),kk=dk+'|'+gr; if(!by.has(kk)) by.set(kk,[]); by.get(kk).push([+h,o]); }
+  for(const a of by.values()){ a.sort((x,y)=>x[0]-y[0]); let acc=0; for(const [,o] of a){ acc+=o.s-o.d; o.cum=acc; } }
+  return sl; }
+function evidenceHTML(M){
+  const D=STATE.data,H=3600000;
+  const known=M.fcv.filter(r=>r.move!=='fora'),igual=known.filter(r=>r.move==='igual');
+  const dv=new Map(); for(const r of D.dev){ if(!r.date) continue; if(!dv.has(r.gUse)) dv.set(r.gUse,[]); dv.get(r.gUse).push(r.date.getTime()); }
+  const igT=igual.filter(r=>r.ret&&r.ret.date);
+  const rec=igT.filter(r=>{const t=r.ret.date.getTime();return (dv.get(r.gRes)||[]).some(x=>x>t-6*H&&x<=t-H);}).length;
+  const sl=physSlots(M),fset=new Set(M.fcv.filter(r=>r.ret).map(r=>r.c));
+  let rn=0,rp=0,fn=0,fp=0; for(const r of M.ret){ const o=sl.get(`${r.T.dk}|${r.gEff}|${r.T.h}`),neg=!!o&&o.cum<0,f=fset.has(r.c); if(neg){rn++;if(f)fn++;}else{rp++;if(f)fp++;} }
+  const errB=M.fcv.filter(r=>r.cna&&/nao trancado via ble|fotos de conferencia/.test(r.cna.errN)).length,wErr=M.fcv.filter(r=>r.cna).length;
+  const k=[kpi('1. O carro existia',fmtPct(safeDiv(igual.length,known.length),0),`${fmtInt(igual.length)} de ${fmtInt(known.length)} FCV saíram com carro do mesmo grupo (grupo utilizado conhecido)`),
+    kpi('Devolução recente do grupo',fmtPct(safeDiv(rec,igT.length),0),`${fmtInt(rec)} de ${fmtInt(igT.length)} desses casos tiveram devolução do mesmo grupo de 1 a 6 h antes da retirada`),
+    kpi('2. O pico aperta o preparo',`${fmtPct(safeDiv(fn,rn),2)} × ${fmtPct(safeDiv(fp,rp),2)}`,`Taxa de FCV com saldo do dia negativo (${fmtInt(fn)} de ${fmtInt(rn)}) contra positivo (${fmtInt(fp)} de ${fmtInt(rp)}). ${fmtPct(safeDiv(fn,fn+fp),0)} das FCV com saldo negativo`),
+    kpi('3. Carro incompleto ofertado',fmtPct(safeDiv(errB,M.fcv.length),0),`${fmtInt(errB)} de ${fmtInt(M.fcv.length)} FCV com erro de trancamento ou de conferência. Esses dois erros são ${fmtPct(safeDiv(errB,wErr),0)} das FCV com erro registrado (${fmtInt(errB)} de ${fmtInt(wErr)})`)];
+  return `<h3>Evidências da causa</h3><p class="note">Três testes independentes no recorte atual. Saldo do dia = devoluções + ${STATE.lag} min de preparo menos retiradas, por grupo e hora, acumulado desde 0h, com todo o fluxo do pátio (não depende do filtro de grupo). Sem placa, "mesmo grupo" pode ser o mesmo carro entregue depois de uma espera (a validar).</p><div class="kpis">${k.join('')}</div>`; }
+function journeyHTML(M){
+  const D=STATE.data,F=STATE.F,b=STATE.bounds,P=PAL();
+  if(!STATE.retBy) STATE.retBy=new Map(D.ret.map(r=>[r.c,r]));
+  const cc=new Set(D.cna.filter(r=>/config ?cat|orbis/.test(r.errN)).map(r=>r.c));
+  const fail=new Set([...D.fcv.map(r=>r.c),...D.cna.map(r=>r.c)].filter(c=>!cc.has(c)));
+  const full=F.from&&F.to&&F.from.getTime()===b.min.getTime()&&F.to.getTime()===b.max.getTime();
+  const gOk=g=>!F.group.length||F.group.includes(g);
+  const base=D.nps.filter(r=>r.cat!=='Sem nota'&&(full||M.inP(r.T))&&gOk((STATE.retBy.get(r.c)||{}).gRes||r.grupo));
+  const det=a=>a.filter(r=>r.cat==='Detrator').length;
+  const st=[['Fast concluído no app',base.filter(r=>!fail.has(r.c)&&r.tipo==='Fast'),P.verde],
+    ['Balcão direto, sem tentativa Fast registrada',base.filter(r=>!fail.has(r.c)&&r.tipo==='Balcão'),P.verde2],
+    ['Balcão após falha no Fast',base.filter(r=>fail.has(r.c)&&r.tipo==='Balcão'),P.alerta]].map(([l,a,c])=>({l,c,d:det(a),n:a.length}));
+  const all=base.filter(r=>fail.has(r.c)),mx=Math.max(...st.map(s=>safeDiv(s.d,s.n)||0),0.01);
+  const sig=z=>Math.abs(z)>=1.96?'diferença consistente (fora da margem de erro)':'diferença dentro da margem de erro';
+  const z1=zTest(st[2].d,st[2].n,st[0].d,st[0].n),z2=zTest(st[2].d,st[2].n,st[1].d,st[1].n);
+  const rows=st.map(s=>`<div class="jbar"><div><b>${esc(s.l)}</b><div class="note">n = ${fmtInt(s.n)} · ${fmtInt(s.d)} detratores</div></div><div class="trk"><div class="fil" style="width:${((safeDiv(s.d,s.n)||0)/mx*100).toFixed(1)}%;background:${s.c}"></div></div><b>${fmtPct(safeDiv(s.d,s.n))}</b></div>`).join('');
+  return `<h3>Detratores por jornada</h3><div class="card">${rows}<p class="note"><b>Qualquer falha na jornada Fast:</b> ${fmtPct(safeDiv(det(all),all.length))} de detratores (${fmtInt(det(all))} de ${fmtInt(all.length)}). Balcão após falha × Fast concluído: ${sig(z1)}. Balcão após falha × balcão direto: ${sig(z2)}.</p><p class="note">Jornada Fast que falhou = contrato em reservas afetadas ou em jornadas não aproveitadas, exceto o incidente de sistema. "Sem falha registrada" não garante que não houve tentativa de Fast. Usa os filtros de grupo e período; não usa tipo, causa, dia nem faixa.</p></div>`; }
+function pilotHTML(M){
+  const D=STATE.data;
+  const ret=D.ret.filter(r=>M.inP(r.T)&&M.gOk(r.gRes));
+  const fs=new Set(D.fcv.filter(r=>r.ret&&M.inP(r.ret.T)&&M.gOk(r.gRes)&&M.cOk(causeOfFcv(r))).map(r=>r.c));
+  const isP=r=>r.T.wd===5&&r.T.h>=12&&r.T.h<=20&&PILOT_G.includes(r.gRes);
+  const calc=l=>{const p=l.filter(isP),o=l.filter(r=>!isP(r)),fp=p.filter(r=>fs.has(r.c)).length,fo=o.filter(r=>fs.has(r.c)).length;return {fp,np:p.length,fo,no:o.length};};
+  const mks=[...new Set(ret.map(r=>r.T.mk))].sort().filter(mk=>mk!==STATE.incMk),l2=mks.slice(-2);
+  const sets=[['Período filtrado',calc(ret)]]; if(l2.length===2) sets.push([`${monthLabel(l2[0])} e ${monthLabel(l2[1])} (meses completos)`,calc(ret.filter(r=>l2.includes(r.T.mk)))]);
+  const rows=sets.map(([n,c])=>{const tp=safeDiv(c.fp,c.np),to=safeDiv(c.fo,c.no);return [n,`${fmtPct(tp,2)} (${fmtInt(c.fp)} de ${fmtInt(c.np)})`,`${fmtPct(to,2)} (${fmtInt(c.fo)} de ${fmtInt(c.no)})`,isFinite(tp/to)?fmtNum(tp/to,1)+'×':'–'];});
+  return `<h3>Piloto contra controle</h3><div class="card"><div class="tbl-wrap">${tableHTML(['Recorte','Piloto: sábado, 12h–20h, GX, GH e CE','Controle: demais retiradas','Piloto ÷ controle'],rows)}</div><p class="note">Pelo horário da retirada; só FCV com retirada registrada. Usa os filtros de período, grupo e causa; ignora dia, faixa e tipo. A leitura recomendada é a dos meses completos. É a base de comparação do plano de 90 dias: a taxa do piloto é lida a cada 4 sábados.</p></div>`; }
+const _rc=renderCausa; renderCausa=function(M,k){ _rc(M,k); addTop('evid',evidenceHTML(M)); };
+const _rcl=RENDER.cliente; RENDER.cliente=M=>{ _rcl(M); addTop('jorn',journeyHTML(M)); };
+const _ro=RENDER.onde; RENDER.onde=M=>{ _ro(M); addTop('pilot',pilotHTML(M)); };
+
+(function boot(){
+  const fi=$('#fileInput'), drop=$('#drop');
+  $('#btnLoad').onclick=()=>fi.click();
+  fi.onchange=()=>{handleFile(fi.files[0]);fi.value='';};
+  drop.onclick=()=>fi.click();
+  drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}};
+  ['dragenter','dragover'].forEach(ev=>window.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>window.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop'||e.target===drop)drop.classList.remove('over');}));
+  window.addEventListener('drop',e=>{const f=e.dataTransfer?.files?.[0]; if(f) handleFile(f);});
+  if(typeof Chart!=='undefined'){ Chart.defaults.font.family=cssVar('--fonte'); Chart.defaults.color=cssVar('--texto'); Chart.defaults.borderColor='#E6EEE3'; }
+})();
+</script>
+</body>
+</html>
